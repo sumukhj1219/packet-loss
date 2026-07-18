@@ -1,4 +1,4 @@
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH } from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
@@ -14,7 +14,7 @@ import { buildDialogBox } from './visuals/dialogBox';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
 import { buildDataPoolHud, updateDataPoolHud } from './visuals/hud';
 import { updatePlayerVisual } from './visuals/playerVisual';
-import { updateServerVisual } from './visuals/serverVisual';
+import { loadServerTextures, updateServerVisual } from './visuals/serverVisual';
 import { triggerInitialOutbreak, VIRUS_TICK_MS, virusTick } from './virus';
 import Wavedash from '@wvdsh/sdk-js';
 import { ACHIEVEMENT_LABELS, consumeAchievementNotifications, fetchLeaderboardEntries, onGameOver } from './wavedashIntegration';
@@ -40,13 +40,34 @@ async function bootstrap(): Promise<void> {
   appRoot.innerHTML = '';
   appRoot.appendChild(app.canvas);
 
+  // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout
+  // math depends on it) — only the CSS size of the canvas scales to fill the viewport,
+  // preserving aspect ratio (uniform scale, no stretch/distortion) and re-fitting on resize.
+  function fitCanvasToViewport(): void {
+    const scale = Math.min(window.innerWidth / ROOM_WIDTH, window.innerHeight / ROOM_HEIGHT);
+    app.canvas.style.width = `${ROOM_WIDTH * scale}px`;
+    app.canvas.style.height = `${ROOM_HEIGHT * scale}px`;
+  }
+  fitCanvasToViewport();
+  window.addEventListener('resize', fitCanvasToViewport);
+
+  const floorTexture = await Assets.load('/assets/floor.png');
+  floorTexture.source.scaleMode = 'nearest'; // keep 64x32 tile crisp when repeated, not blurred
+  const wiresTexture = await Assets.load('/assets/wires.png');
+  wiresTexture.source.scaleMode = 'nearest';
+  // Must resolve before createGameState()/startRun() build any server visuals.
+  await loadServerTextures();
+
   const roomFloor = new Container();
   roomFloor.label = 'roomFloor';
-  const floorGraphic = new Graphics()
-    .rect(0, 0, ROOM_WIDTH, ROOM_HEIGHT)
-    .fill(ROOM_BACKGROUND_COLOR)
-    .stroke({ width: 2, color: 0x2a2f3a });
-  roomFloor.addChild(floorGraphic);
+  const floorTiling = new TilingSprite({ texture: floorTexture, width: ROOM_WIDTH, height: ROOM_HEIGHT });
+  const floorBorder = new Graphics().rect(0, 0, ROOM_WIDTH, ROOM_HEIGHT).stroke({ width: 2, color: 0x2a2f3a });
+  roomFloor.addChild(floorTiling, floorBorder);
+
+  // Full-room overlay (960x760, matches ROOM_WIDTH x ROOM_HEIGHT exactly) — sits above the
+  // floor and below the server racks so wiring reads as running under/behind the servers.
+  const wiresLayer = new Sprite(wiresTexture);
+  wiresLayer.label = 'wiresLayer';
 
   const serverLayer = new Container();
   serverLayer.label = 'serverLayer';
@@ -64,6 +85,7 @@ async function bootstrap(): Promise<void> {
 
   app.stage.addChild(
     roomFloor,
+    wiresLayer,
     serverLayer,
     playerLayer,
     hudLayer,
