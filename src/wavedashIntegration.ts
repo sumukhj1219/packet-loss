@@ -1,23 +1,65 @@
 import Wavedash from '@wvdsh/sdk-js';
 import type { GameState } from './types';
 
-// SECTION 5.3 — Achievements
+// SECTION 5.3 — Achievements. Every identifier here must have a matching entry
+// (ID, title, description) created in the Wavedash Developer Portal — the SDK
+// can't register achievement metadata from code.
 export const ACHIEVEMENTS = {
   FIRST_PATCH: 'first_patch',
   SURVIVED_OUTBREAK_DUPLICATION: 'outbreak_survivor', // lived through a 10x duplication event
   DATA_GUARDIAN: 'data_guardian', // game ended with dataPool > 50%
   RAPID_RESPONSE: 'rapid_response', // patched a rack within 2s of it going INFECTED
+  VETERAN: 'veteran', // 50 patches completed within a single run
+  MARATHON: 'marathon', // survived 3 minutes of elapsed time in a single run
+  DEDICATED: 'dedicated', // played 10 games, lifetime
 } as const;
+
+// Display names for the top-center "achievement unlocked" toast — must match
+// wavedash-import.json's display_name fields so the in-game label and the
+// Developer Portal agree.
+export const ACHIEVEMENT_LABELS: Record<string, string> = {
+  [ACHIEVEMENTS.FIRST_PATCH]: 'First Patch',
+  [ACHIEVEMENTS.SURVIVED_OUTBREAK_DUPLICATION]: 'Outbreak Survivor',
+  [ACHIEVEMENTS.DATA_GUARDIAN]: 'Data Guardian',
+  [ACHIEVEMENTS.RAPID_RESPONSE]: 'Rapid Response',
+  [ACHIEVEMENTS.VETERAN]: 'Veteran',
+  [ACHIEVEMENTS.MARATHON]: 'Marathon',
+  [ACHIEVEMENTS.DEDICATED]: 'Dedicated',
+};
+
+// Not in the PRD — a lightweight notification queue so the UI layer can show a toast
+// the moment an achievement unlocks, without grantAchievement (called deep in game
+// logic — patch.ts, virus.ts) needing to know anything about rendering.
+const pendingNotifications: string[] = [];
 
 // Wavedash's setAchievement is synchronous and local-only (no promise) — storeNow
 // forces an immediate backend write instead of the default throttled persist, since
 // the PRD wants these to survive a crash mid-run, not just a graceful game over.
+//
+// Achievements only ever unlock once — grantAchievement can legitimately be called
+// repeatedly for the same id (e.g. SURVIVED_OUTBREAK_DUPLICATION fires on every 10-patch
+// milestone), so this guards on Wavedash's own unlocked-state instead of trusting each
+// call site to track "have I already granted this" itself.
 export function grantAchievement(id: string): void {
+  try {
+    if (Wavedash.getAchievement(id)) return;
+  } catch (err) {
+    console.error(`[Wavedash] failed to read achievement ${id}, attempting grant anyway`, err);
+  }
+
+  pendingNotifications.push(id);
   try {
     Wavedash.setAchievement(id, true);
   } catch (err) {
     console.error(`[Wavedash] failed to set achievement ${id}`, err);
   }
+}
+
+// Call once per frame from the UI layer; drains and returns any achievements
+// unlocked since the last call.
+export function consumeAchievementNotifications(): string[] {
+  if (pendingNotifications.length === 0) return [];
+  return pendingNotifications.splice(0, pendingNotifications.length);
 }
 
 const LEADERBOARD_NAME = 'patches-survived';

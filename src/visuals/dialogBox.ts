@@ -61,6 +61,7 @@ export function buildDialogBox(roomWidth: number, roomHeight: number): DialogBox
     messageText.text = event.text;
     guideAvatar.visible = event.portrait === 'guide';
     alertAvatar.visible = event.portrait === 'alert';
+    hintText.text = event.pausesSimulation ? 'Press ENTER to continue' : 'Press any key or click to continue';
   }
 
   return { container, setEvent };

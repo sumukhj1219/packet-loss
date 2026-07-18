@@ -1,0 +1,64 @@
+{
+  "achievements": [
+    {
+      "identifier": "first_patch",
+      "display_name": "First Patch",
+      "description": "Successfully patch your first server.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "outbreak_survivor",
+      "display_name": "Outbreak Survivor",
+      "description": "Survive a virus duplication event.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "data_guardian",
+      "display_name": "Data Guardian",
+      "description": "End a session with more than 50% of your Data Pool remaining.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "rapid_response",
+      "display_name": "Rapid Response",
+      "description": "Patch a server within 2 seconds of it becoming infected.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "veteran",
+      "display_name": "Veteran",
+      "description": "Complete 50 patches in a single run.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "marathon",
+      "display_name": "Marathon",
+      "description": "Survive for 3 minutes in a single run.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "dedicated",
+      "display_name": "Dedicated",
+      "description": "Play 10 games.",
+      "stat_requirement": null
+    }
+  ],
+  "stats": [
+    {
+      "identifier": "games_played",
+      "display_name": "Games Played"
+    },
+    {
+      "identifier": "total_patches_lifetime",
+      "display_name": "Total Patches (Lifetime)"
+    },
+    {
+      "identifier": "best_patches_survived",
+      "display_name": "Best Patches Survived"
+    },
+    {
+      "identifier": "total_duplications_survived",
+      "display_name": "Duplications Survived (Lifetime)"
+    }
+  ]
+}

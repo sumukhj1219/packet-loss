@@ -1,3 +1,4 @@
+import { recordPatchStat } from './stats';
 import type { GameState, PlayerComponent, ServerComponent } from './types';
 import { checkDuplicationThreshold } from './virus';
 import { ACHIEVEMENTS, grantAchievement } from './wavedashIntegration';
@@ -57,6 +58,7 @@ function completePatch(state: GameState, player: PlayerComponent): void {
   if (infectedDurationMs !== null && infectedDurationMs <= RAPID_RESPONSE_WINDOW_MS) {
     grantAchievement(ACHIEVEMENTS.RAPID_RESPONSE);
   }
+  recordPatchStat(state); // lifetime patch count + VETERAN check (Section 5.3 stats)
 
   player.currentState = 'IDLE';
   player.facingLocked = false;

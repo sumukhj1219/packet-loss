@@ -1,4 +1,5 @@
 import { GRID_COLS, GRID_ROWS } from './config';
+import { recordDuplicationSurvivedStat } from './stats';
 import type { GameState } from './types';
 import { ACHIEVEMENTS, grantAchievement } from './wavedashIntegration';
 
@@ -118,5 +119,6 @@ export function checkDuplicationThreshold(state: GameState): void {
 
   if (spawned.length > 0 && !state.gameOver) {
     grantAchievement(ACHIEVEMENTS.SURVIVED_OUTBREAK_DUPLICATION);
+    recordDuplicationSurvivedStat();
   }
 }

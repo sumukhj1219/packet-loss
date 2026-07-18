@@ -1,9 +1,12 @@
 import type { GameState } from './types';
 
-function fireDialogEvent(state: GameState, id: string, text: string, pauses = false): void {
+// Not in the PRD — every dialog now blocks and requires Enter to dismiss, not just the
+// boot tutorial. `portrait` stays purely cosmetic (which avatar shows); pausesSimulation
+// is always true so pumpDialogQueue/dismissActiveDialog freeze the game uniformly.
+function fireDialogEvent(state: GameState, id: string, text: string, portrait: 'guide' | 'alert' = 'alert'): void {
   if (state.dialog.triggeredEventIds.has(id)) return;
   state.dialog.triggeredEventIds.add(id);
-  state.dialog.queue.push({ id, text, portrait: pauses ? 'guide' : 'alert', pausesSimulation: pauses });
+  state.dialog.queue.push({ id, text, portrait, pausesSimulation: true });
 }
 
 // SECTION 3.2 — boot tutorial. Deviation from the literal spec: virusPaused is no longer
@@ -16,7 +19,7 @@ export function bootSequence(state: GameState): void {
     state,
     'boot_tutorial',
     'Welcome, Engineer. Use WASD or Arrow Keys to move. Approach a rack and click (or press SPACE) to patch it.',
-    true,
+    'guide',
   );
 }
 
