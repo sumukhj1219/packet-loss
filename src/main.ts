@@ -1,8 +1,9 @@
 import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
+import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
 import { ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH } from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
-import { consumeInteractPress, getMovementAxis, initInput } from './input';
+import { consumeAntivirusPress, consumeInteractPress, getMovementAxis, initInput } from './input';
 import { attemptPatch, findInteractableServer } from './interaction';
 import { updateImmunityTimers, updatePatching } from './patch';
 import { updatePlayerMovement } from './player';
@@ -10,6 +11,7 @@ import { checkTimeBasedAchievements, recordGameOverStats, recordGameStart, reque
 import { createGameState } from './state';
 import type { GameState } from './types';
 import { buildAchievementToast } from './visuals/achievementToast';
+import { buildAntivirusVisual, updateAntivirusVisual } from './visuals/antivirusVisual';
 import { buildDialogBox } from './visuals/dialogBox';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
 import { buildDataPoolHud, updateDataPoolHud } from './visuals/hud';
@@ -40,6 +42,30 @@ async function bootstrap(): Promise<void> {
   appRoot.innerHTML = '';
   appRoot.appendChild(app.canvas);
 
+  // Left-side data screen — plain DOM/text for now; a real HUD-screen asset (bezel, etc.)
+  // will replace this styling later without touching the update logic below.
+  const dataScreenContentEl = document.querySelector<HTMLPreElement>('#dataScreenContent');
+  if (!dataScreenContentEl) throw new Error('#dataScreenContent element not found');
+  const dataScreenContent = dataScreenContentEl;
+
+  function updateDataScreen(state: GameState): void {
+    const seconds = Math.floor(state.elapsedMs / 1000);
+    const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const ss = String(seconds % 60).padStart(2, '0');
+    const infectedCount = state.servers.filter((s) => s.state === 'INFECTED').length;
+    const towerStatus = state.antivirusTower ? `ACTIVE ${Math.ceil(state.antivirusCooldownMs / 1000)}s` : 'READY';
+
+    dataScreenContent.textContent = [
+      'SYSTEM STATUS',
+      '',
+      `DATA POOL   ${Math.ceil(state.dataPool)} / ${state.maxDataPool} TB`,
+      `PATCHES     ${state.totalPatches}`,
+      `UPTIME      ${mm}:${ss}`,
+      `INFECTED    ${infectedCount} / ${state.servers.length}`,
+      `AV TOWER    ${towerStatus}`,
+    ].join('\n');
+  }
+
   // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout
   // math depends on it) — only the CSS size of the canvas scales to fill the viewport,
   // preserving aspect ratio (uniform scale, no stretch/distortion) and re-fitting on resize.
@@ -69,6 +95,8 @@ async function bootstrap(): Promise<void> {
   const wiresLayer = new Sprite(wiresTexture);
   wiresLayer.label = 'wiresLayer';
 
+  const antivirusVisual = buildAntivirusVisual();
+
   const serverLayer = new Container();
   serverLayer.label = 'serverLayer';
   const playerLayer = new Container();
@@ -86,6 +114,7 @@ async function bootstrap(): Promise<void> {
   app.stage.addChild(
     roomFloor,
     wiresLayer,
+    antivirusVisual,
     serverLayer,
     playerLayer,
     hudLayer,
@@ -198,6 +227,11 @@ async function bootstrap(): Promise<void> {
         updatePatching(state, deltaMs);
         updateImmunityTimers(state, deltaMs);
 
+        updateAntivirusTower(state, deltaMs);
+        if (consumeAntivirusPress()) {
+          attemptPlaceAntivirusTower(state, state.player);
+        }
+
         const interactableId = interactable ? interactable.id : null;
         if (interactableId !== prevInteractableId) {
           console.log(`[interact] nearest server in range: ${interactableId ?? 'none'}`);
@@ -217,7 +251,10 @@ async function bootstrap(): Promise<void> {
       updateServerVisual(server, state.elapsedMs);
     }
 
+    updateAntivirusVisual(antivirusVisual, state);
+
     updateDataPoolHud(dataPoolHud, state);
+    updateDataScreen(state);
 
     if (state.player.currentState !== prevPlayerState || state.player.facing !== prevFacing) {
       console.log(`[player] state=${state.player.currentState} facing=${state.player.facing} @ ${state.elapsedMs.toFixed(0)}ms`);

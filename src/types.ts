@@ -61,6 +61,14 @@ export interface DialogManagerState {
   isBlockingInput: boolean; // true while activeEvent.pausesSimulation
 }
 
+// Antivirus tower: a single placeable, permanent, replaceable area-denial structure (see
+// antivirus.ts). Servers within `radius` of it are excluded from every infection-spawn path.
+export interface AntivirusTower {
+  worldX: number;
+  worldY: number;
+  radius: number;
+}
+
 // SECTION 1.5 — Global GameState
 export interface GameState {
   dataPool: number; // starts 10000, floors at 0
@@ -73,4 +81,6 @@ export interface GameState {
   virusPaused: boolean; // true until first infection is cleared (Section 3)
   gameOver: boolean;
   elapsedMs: number;
+  antivirusTower: AntivirusTower | null;
+  antivirusCooldownMs: number; // counts down from ANTIVIRUS_PLACEMENT_COOLDOWN_MS, 0 = ready to place
 }

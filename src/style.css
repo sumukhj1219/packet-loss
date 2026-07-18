@@ -12,22 +12,43 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  /* Matches the in-room palette (ROOM_BACKGROUND_COLOR/dialogPanel in config.ts) so the
-     letterbox margin around the scaled canvas reads as ambient room glow, not dead space. */
-  background: radial-gradient(ellipse at center, #161a24 0%, #0c0e14 55%, #05060a 100%);
+  background: #05060a;
 }
 
+/* Side by side, both stretched to full viewport height: #dataScreen takes whatever width
+   #app doesn't need, so together they fill the screen with zero black space and the game
+   canvas itself never stretches/crops (see fitCanvasToViewport in main.ts). */
 body {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+#dataScreen {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  background: #0c0e14;
+  border-right: 1px solid #2a2f3a;
+  color: #8a8f98;
+  overflow: hidden;
+}
+
+#dataScreenContent {
+  margin: 0;
+  padding: 20px;
+  font-family: monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #c7d0dc;
+  white-space: pre-wrap;
 }
 
 #app {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   height: 100%;
 }
 

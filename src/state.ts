@@ -25,5 +25,7 @@ export function createGameState(): GameState {
     virusPaused: false,
     gameOver: false,
     elapsedMs: 0,
+    antivirusTower: null,
+    antivirusCooldownMs: 0,
   };
 }

@@ -14,6 +14,7 @@ type MoveDirection = (typeof MOVE_KEYS)[MoveKeyCode];
 
 const heldDirections = new Set<MoveDirection>();
 let interactJustPressed = false;
+let antivirusJustPressed = false;
 
 export function initInput(): void {
   window.addEventListener('keydown', (e) => {
@@ -23,6 +24,10 @@ export function initInput(): void {
     if (e.code === 'Space' && !e.repeat) {
       interactJustPressed = true;
       e.preventDefault(); // avoid page-scroll on spacebar
+    }
+
+    if (e.code === 'KeyT' && !e.repeat) {
+      antivirusJustPressed = true;
     }
   });
   window.addEventListener('keyup', (e) => {
@@ -35,6 +40,15 @@ export function initInput(): void {
 export function consumeInteractPress(): boolean {
   if (interactJustPressed) {
     interactJustPressed = false;
+    return true;
+  }
+  return false;
+}
+
+// Edge-triggered: true at most once per physical 'T' press, then consumed.
+export function consumeAntivirusPress(): boolean {
+  if (antivirusJustPressed) {
+    antivirusJustPressed = false;
     return true;
   }
   return false;

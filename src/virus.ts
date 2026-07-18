@@ -1,3 +1,4 @@
+import { isServerProtected } from './antivirus';
 import { GRID_COLS, GRID_ROWS } from './config';
 import { recordDuplicationSurvivedStat } from './stats';
 import type { GameState } from './types';
@@ -27,7 +28,7 @@ export function computeNeighborIds(id: number): number[] {
 }
 
 function spawnRandomInfection(state: GameState) {
-  const eligible = state.servers.filter((s) => s.state === 'IDLE');
+  const eligible = state.servers.filter((s) => s.state === 'IDLE' && !isServerProtected(state, s));
   if (eligible.length === 0) return null;
 
   const target = eligible[Math.floor(Math.random() * eligible.length)];
@@ -60,8 +61,9 @@ export function virusTick(state: GameState): void {
     for (const nId of source.neighborIds) {
       const neighbor = state.servers[nId];
 
-      // Jump-eligibility filter: excludes IMMUNE, LOCKED, and already-INFECTED targets
-      if (neighbor.state !== 'IDLE') continue;
+      // Jump-eligibility filter: excludes IMMUNE, LOCKED, already-INFECTED, and
+      // antivirus-tower-protected targets
+      if (neighbor.state !== 'IDLE' || isServerProtected(state, neighbor)) continue;
 
       if (Math.random() < SPREAD_CHANCE_PER_NEIGHBOR) {
         neighbor.state = 'INFECTED';
@@ -100,7 +102,7 @@ export function checkDuplicationThreshold(state: GameState): void {
 
   state.lastDuplicationMultiple = state.totalPatches;
 
-  const eligible = state.servers.filter((s) => s.state === 'IDLE');
+  const eligible = state.servers.filter((s) => s.state === 'IDLE' && !isServerProtected(state, s));
 
   // Not in the PRD's original scaling formula — flat +2 per duplication event,
   // capped by however many IDLE racks remain (never crash on an empty pool).
