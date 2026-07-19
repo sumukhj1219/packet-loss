@@ -1,10 +1,15 @@
-import { ROOM_HEIGHT, ROOM_WIDTH, SERVER_FOOTPRINT } from './config';
+import { ROOM_HEIGHT, ROOM_WIDTH, SERVER_FOOTPRINT, WALL_THICKNESS } from './config';
 import type { PlayerComponent, ServerComponent } from './types';
 
-// SECTION 1.6 — Player movement clamping (room walls)
+// SECTION 1.6 — Player movement clamping (room walls). Bound is inset by WALL_THICKNESS on top
+// of boundingRadius so the player's edge stops at the wall's inner face, not the room's outer edge.
 export function clampToRoom(player: PlayerComponent): void {
-  player.x = Math.max(player.boundingRadius, Math.min(ROOM_WIDTH - player.boundingRadius, player.x));
-  player.y = Math.max(player.boundingRadius, Math.min(ROOM_HEIGHT - player.boundingRadius, player.y));
+  const minX = WALL_THICKNESS + player.boundingRadius;
+  const maxX = ROOM_WIDTH - WALL_THICKNESS - player.boundingRadius;
+  const minY = WALL_THICKNESS + player.boundingRadius;
+  const maxY = ROOM_HEIGHT - WALL_THICKNESS - player.boundingRadius;
+  player.x = Math.max(minX, Math.min(maxX, player.x));
+  player.y = Math.max(minY, Math.min(maxY, player.y));
 }
 
 // SECTION 1.6 — Player<->server collision (AABB, resolved after movement, before render)

@@ -19,6 +19,16 @@ export const SERVER_FOOTPRINT = 72; // px, roughly square footprint per unit inc
 // blocked zones overlap and seal the corridor between them.
 export const ROOM_CELL_SIZE = 170;
 
+// Max random per-axis offset applied to each server's grid slot (see room.ts layoutServers) so
+// racks read as a jittered grid instead of a rigid one. Worst case two adjacent racks jitter
+// straight at each other, eating 2x this from the 34px corridor left by ROOM_CELL_SIZE above
+// (170 - 2*68 = 34) — keep this below 17 or the corridor between two racks can seal shut.
+export const SERVER_JITTER = 12;
+
+// SECTION — Room walls (perimeter, drawn as a thick border and carved out of the walkable
+// floor). clampToRoom (collision.ts) insets the player bound by this on top of boundingRadius.
+export const WALL_THICKNESS = 32;
+
 // SECTION 4.1 — Placeholder Visual Config
 export const PLACEHOLDER_COLORS = {
   player: {
@@ -38,6 +48,7 @@ export const PLACEHOLDER_COLORS = {
   guideAvatar: 0x6fce8f,
   dialogPanel: 0x1c1e26,
   dialogPanelBorder: 0x4fa8ff,
+  wall: 0x2f333d,
 } as const;
 
 export const ROOM_BACKGROUND_COLOR = 0x11141b;
@@ -45,3 +56,15 @@ export const ROOM_BACKGROUND_COLOR = 0x11141b;
 // SECTION — Side data screen (bezel asset public/assets/screen.png is authored at this exact size)
 export const SIDE_SCREEN_WIDTH = 400; // px
 export const SIDE_SCREEN_HEIGHT = 760; // px, matches ROOM_HEIGHT so the two panels align edge-to-edge
+
+// SECTION — Data Pool progress bar (side screen). Segment count is a display resolution
+// choice, not tied to any other constant — slot value (TB per segment) is derived from
+// maxDataPool at render time so it stays correct if maxDataPool ever changes.
+export const DATA_POOL_SLOT_COUNT = 20; // 500 TB per slot @ maxDataPool 10000
+export const DATA_POOL_SLOT_WIDTH = 14; // px, matches public/assets/data-*.png frame size
+export const DATA_POOL_SLOT_HEIGHT = 28; // px
+// Tier thresholds pick which of the 3 slot textures (public/assets/data-full/-half/-empty.png)
+// filled slots render with. Independent of the 50%/25% dialog-warning thresholds in dialog.ts —
+// this is a visual read of pool health, not an event trigger.
+export const DATA_POOL_TIER_HALF_RATIO = 0.5;
+export const DATA_POOL_TIER_EMPTY_RATIO = 0.2;

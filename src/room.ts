@@ -1,4 +1,13 @@
-import { GRID_COLS, GRID_ROWS, RACK_COUNT, ROOM_CELL_SIZE, ROOM_HEIGHT, ROOM_WIDTH, SERVER_FOOTPRINT } from './config';
+import {
+  GRID_COLS,
+  GRID_ROWS,
+  RACK_COUNT,
+  ROOM_CELL_SIZE,
+  ROOM_HEIGHT,
+  ROOM_WIDTH,
+  SERVER_FOOTPRINT,
+  SERVER_JITTER,
+} from './config';
 import type { RoomLayout } from './types';
 
 // Centers the cols x rows server grid within the room, leaving equal margins
@@ -21,14 +30,19 @@ export function createRoomLayout(): RoomLayout {
 }
 
 // SECTION 1.6 — worldX/worldY are computed once at layout time, not re-derived every frame.
+// Each slot gets a random +/- SERVER_JITTER offset so the racks read as a jittered grid rather
+// than a rigid one; magnitude is capped (see config.ts) to guarantee inter-rack corridors never
+// seal shut.
 export function layoutServers(layout: RoomLayout): { worldX: number; worldY: number }[] {
   const positions = [];
   for (let i = 0; i < RACK_COUNT; i++) {
     const gx = i % layout.cols;
     const gy = Math.floor(i / layout.cols);
+    const jitterX = (Math.random() * 2 - 1) * SERVER_JITTER;
+    const jitterY = (Math.random() * 2 - 1) * SERVER_JITTER;
     positions.push({
-      worldX: layout.originX + gx * layout.cellSize,
-      worldY: layout.originY + gy * layout.cellSize,
+      worldX: layout.originX + gx * layout.cellSize + jitterX,
+      worldY: layout.originY + gy * layout.cellSize + jitterY,
     });
   }
   return positions;

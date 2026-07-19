@@ -1,6 +1,6 @@
 import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
-import { ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH, SIDE_SCREEN_WIDTH } from './config';
+import { PLACEHOLDER_COLORS, ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH, SIDE_SCREEN_WIDTH, WALL_THICKNESS } from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
 import { consumeAntivirusPress, consumeInteractPress, getMovementAxis, initInput } from './input';
@@ -11,9 +11,10 @@ import { checkTimeBasedAchievements, recordGameOverStats, recordGameStart, reque
 import { createGameState } from './state';
 import type { GameState } from './types';
 import { buildAchievementToast } from './visuals/achievementToast';
-import { buildAntivirusVisual, updateAntivirusVisual } from './visuals/antivirusVisual';
+import { buildAntivirusVisual, loadAntivirusTextures, updateAntivirusVisual } from './visuals/antivirusVisual';
 import { buildDialogBox } from './visuals/dialogBox';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
+import { buildDataPoolBar, updateDataPoolBar } from './visuals/dataPoolBar';
 import { buildDataPoolHud, updateDataPoolHud } from './visuals/hud';
 import { updatePlayerVisual } from './visuals/playerVisual';
 import { loadServerTextures, updateServerVisual } from './visuals/serverVisual';
@@ -47,6 +48,10 @@ async function bootstrap(): Promise<void> {
   if (!dataScreenContentEl) throw new Error('#dataScreenContent element not found');
   const dataScreenContent = dataScreenContentEl;
 
+  const dataPoolBarEl = document.querySelector<HTMLDivElement>('#dataPoolBar');
+  if (!dataPoolBarEl) throw new Error('#dataPoolBar element not found');
+  const dataPoolBarSlots = buildDataPoolBar(dataPoolBarEl);
+
   function updateDataScreen(state: GameState): void {
     const seconds = Math.floor(state.elapsedMs / 1000);
     const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -58,6 +63,7 @@ async function bootstrap(): Promise<void> {
       'SYSTEM STATUS',
       '',
       `DATA POOL   ${Math.ceil(state.dataPool)} / ${state.maxDataPool} TB`,
+      '', // reserved line — #dataPoolBar overlays this slot, see style.css
       `PATCHES     ${state.totalPatches}`,
       `UPTIME      ${mm}:${ss}`,
       `INFECTED    ${infectedCount} / ${state.servers.length}`,
@@ -87,12 +93,24 @@ async function bootstrap(): Promise<void> {
   wiresTexture.source.scaleMode = 'nearest';
   // Must resolve before createGameState()/startRun() build any server visuals.
   await loadServerTextures();
+  await loadAntivirusTextures();
 
   const roomFloor = new Container();
   roomFloor.label = 'roomFloor';
   const floorTiling = new TilingSprite({ texture: floorTexture, width: ROOM_WIDTH, height: ROOM_HEIGHT });
   const floorBorder = new Graphics().rect(0, 0, ROOM_WIDTH, ROOM_HEIGHT).stroke({ width: 2, color: 0x2a2f3a });
-  roomFloor.addChild(floorTiling, floorBorder);
+
+  // Perimeter walls, WALL_THICKNESS thick on all four sides — carved out of the walkable floor
+  // and enforced in collision.ts's clampToRoom, not just drawn here.
+  const walls = new Graphics()
+    .rect(0, 0, ROOM_WIDTH, WALL_THICKNESS)
+    .rect(0, ROOM_HEIGHT - WALL_THICKNESS, ROOM_WIDTH, WALL_THICKNESS)
+    .rect(0, 0, WALL_THICKNESS, ROOM_HEIGHT)
+    .rect(ROOM_WIDTH - WALL_THICKNESS, 0, WALL_THICKNESS, ROOM_HEIGHT)
+    .fill(PLACEHOLDER_COLORS.wall);
+  walls.label = 'walls';
+
+  roomFloor.addChild(floorTiling, floorBorder, walls);
 
   // Full-room overlay (960x760, matches ROOM_WIDTH x ROOM_HEIGHT exactly) — sits above the
   // floor and below the server racks so wiring reads as running under/behind the servers.
@@ -259,6 +277,7 @@ async function bootstrap(): Promise<void> {
 
     updateDataPoolHud(dataPoolHud, state);
     updateDataScreen(state);
+    updateDataPoolBar(dataPoolBarSlots, state);
 
     if (state.player.currentState !== prevPlayerState || state.player.facing !== prevFacing) {
       console.log(`[player] state=${state.player.currentState} facing=${state.player.facing} @ ${state.elapsedMs.toFixed(0)}ms`);

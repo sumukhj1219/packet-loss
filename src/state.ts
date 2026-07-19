@@ -1,4 +1,4 @@
-import { ROOM_HEIGHT, ROOM_WIDTH } from './config';
+import { ROOM_HEIGHT, ROOM_WIDTH, WALL_THICKNESS } from './config';
 import { createPlayer, createServers } from './entities';
 import { createRoomLayout } from './room';
 import type { GameState } from './types';
@@ -13,7 +13,9 @@ export function createGameState(): GameState {
     totalPatches: 0,
     lastDuplicationMultiple: 0,
     servers: createServers(layout),
-    player: createPlayer(ROOM_WIDTH / 2, ROOM_HEIGHT - 60),
+    // -32 boundingRadius matches createPlayer's fixed value; clampToRoom would otherwise
+    // yank the player up on the very first tick since this spot now sits inside the wall.
+    player: createPlayer(ROOM_WIDTH / 2, ROOM_HEIGHT - WALL_THICKNESS - 32),
     dialog: {
       queue: [],
       activeEvent: null,

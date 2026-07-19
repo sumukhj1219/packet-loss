@@ -61,6 +61,19 @@ body {
   white-space: pre-wrap;
 }
 
+/* 20 slots x 14px = 280px, centered in the 292px text box. Overlays the blank line
+   main.ts reserves right after the "DATA POOL" text line (3 lines x 24px line-height
+   from top:168px = 240px) — the 28px-tall bar overflows 4px into the next line's box,
+   which is fine since text glyphs don't fill their full line-height. */
+#dataPoolBar {
+  position: absolute;
+  left: 60px;
+  top: 240px;
+  width: 280px;
+  height: 28px;
+  display: flex;
+}
+
 #app {
   flex: 0 0 960px;
   width: 960px;
