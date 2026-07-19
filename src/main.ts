@@ -1,6 +1,6 @@
 import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
-import { ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH } from './config';
+import { ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH, SIDE_SCREEN_WIDTH } from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
 import { consumeAntivirusPress, consumeInteractPress, getMovementAxis, initInput } from './input';
@@ -42,8 +42,7 @@ async function bootstrap(): Promise<void> {
   appRoot.innerHTML = '';
   appRoot.appendChild(app.canvas);
 
-  // Left-side data screen — plain DOM/text for now; a real HUD-screen asset (bezel, etc.)
-  // will replace this styling later without touching the update logic below.
+  // Left-side data screen — text rendered over the screen.png bezel asset (400x760, see config).
   const dataScreenContentEl = document.querySelector<HTMLPreElement>('#dataScreenContent');
   if (!dataScreenContentEl) throw new Error('#dataScreenContent element not found');
   const dataScreenContent = dataScreenContentEl;
@@ -66,16 +65,21 @@ async function bootstrap(): Promise<void> {
     ].join('\n');
   }
 
-  // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout
-  // math depends on it) — only the CSS size of the canvas scales to fill the viewport,
-  // preserving aspect ratio (uniform scale, no stretch/distortion) and re-fitting on resize.
-  function fitCanvasToViewport(): void {
-    const scale = Math.min(window.innerWidth / ROOM_WIDTH, window.innerHeight / ROOM_HEIGHT);
-    app.canvas.style.width = `${ROOM_WIDTH * scale}px`;
-    app.canvas.style.height = `${ROOM_HEIGHT * scale}px`;
+  // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout math
+  // depends on it). The bezel image and canvas are both fixed-pixel-size DOM elements, so
+  // instead of resizing the canvas alone, #gameRoot (bezel + canvas, 1360x760) is scaled as
+  // one unit via CSS transform to fit the viewport, preserving aspect ratio and their alignment.
+  const gameRootEl = document.querySelector<HTMLDivElement>('#gameRoot');
+  if (!gameRootEl) throw new Error('#gameRoot element not found');
+  const gameRoot = gameRootEl;
+  const ROOT_WIDTH = ROOM_WIDTH + SIDE_SCREEN_WIDTH;
+  const ROOT_HEIGHT = ROOM_HEIGHT;
+  function fitRootToViewport(): void {
+    const scale = Math.min(window.innerWidth / ROOT_WIDTH, window.innerHeight / ROOT_HEIGHT);
+    gameRoot.style.transform = `scale(${scale})`;
   }
-  fitCanvasToViewport();
-  window.addEventListener('resize', fitCanvasToViewport);
+  fitRootToViewport();
+  window.addEventListener('resize', fitRootToViewport);
 
   const floorTexture = await Assets.load('/assets/floor.png');
   floorTexture.source.scaleMode = 'nearest'; // keep 64x32 tile crisp when repeated, not blurred

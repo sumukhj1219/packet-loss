@@ -15,28 +15,45 @@ body {
   background: #05060a;
 }
 
-/* Side by side, both stretched to full viewport height: #dataScreen takes whatever width
-   #app doesn't need, so together they fill the screen with zero black space and the game
-   canvas itself never stretches/crops (see fitCanvasToViewport in main.ts). */
+/* #gameRoot is a fixed 1360x760 box (400 side screen + 960 room) that's scaled as a single
+   unit to fit the viewport (see fitRootToViewport in main.ts) — the bezel image and the game
+   canvas are both authored at fixed pixel sizes, so they must scale together or they'd drift
+   out of alignment on any viewport that isn't exactly 1360x760. */
 body {
   display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#gameRoot {
+  width: 1360px;
+  height: 760px;
+  display: flex;
   flex-direction: row;
-  align-items: stretch;
+  flex-shrink: 0;
+  transform-origin: center center;
 }
 
 #dataScreen {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 100%;
-  background: #0c0e14;
-  border-right: 1px solid #2a2f3a;
-  color: #8a8f98;
-  overflow: hidden;
+  position: relative;
+  flex: 0 0 400px;
+  width: 400px;
+  height: 760px;
+  background: url('/assets/screen.png') no-repeat center / contain;
 }
 
+/* Text content is boxed to 292x360 to stay within the screen cutout drawn into screen.png
+   (measured against the current art: cutout spans x 47-352, y 162-533, so this is centered
+   in that region with a couple px of clearance from the rounded corners). */
 #dataScreenContent {
+  position: absolute;
+  left: 54px;
+  top: 168px;
+  width: 292px;
+  height: 360px;
   margin: 0;
-  padding: 20px;
+  padding: 0;
+  overflow: hidden;
   font-family: monospace;
   font-size: 15px;
   line-height: 1.6;
@@ -45,11 +62,9 @@ body {
 }
 
 #app {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  flex: 0 0 960px;
+  width: 960px;
+  height: 760px;
 }
 
 #app canvas {

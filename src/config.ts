@@ -41,3 +41,7 @@ export const PLACEHOLDER_COLORS = {
 } as const;
 
 export const ROOM_BACKGROUND_COLOR = 0x11141b;
+
+// SECTION — Side data screen (bezel asset public/assets/screen.png is authored at this exact size)
+export const SIDE_SCREEN_WIDTH = 400; // px
+export const SIDE_SCREEN_HEIGHT = 760; // px, matches ROOM_HEIGHT so the two panels align edge-to-edge
