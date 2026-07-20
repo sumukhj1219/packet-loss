@@ -8,21 +8,21 @@ export const RACK_TILE_SIZE = 96; // px, includes padding gutter (bookkeeping on
 // SECTION 1.6 — Room Layout & Player Collision (top-down room-space)
 export const ROOM_WIDTH = 960; // px, playable floor area
 // Tall enough that the top/bottom rows of the 4-row grid clear the room walls by more than
-// the 68px collision threshold (footprint half + player radius) — otherwise clampToRoom fights
+// the 52px collision threshold (footprint half + player radius) — otherwise clampToRoom fights
 // resolveServerCollisions and traps the player against a wall-adjacent rack. See ROOM_CELL_SIZE.
 export const ROOM_HEIGHT = 760;
 export const SERVER_FOOTPRINT = 72; // px, roughly square footprint per unit incl. walk clearance
 // Spacing between server centers. The player<->server collision box (Section 1.6) is
-// inflated by the player's own boundingRadius (32px) on top of the footprint half-width,
-// so the true blocked zone per server is (SERVER_FOOTPRINT/2 + boundingRadius) = 68px from
-// center. Cell size must clear two of those (136px) with room to spare, or adjacent racks'
+// inflated by the player's own boundingRadius (16px) on top of the footprint half-width,
+// so the true blocked zone per server is (SERVER_FOOTPRINT/2 + boundingRadius) = 52px from
+// center. Cell size must clear two of those (104px) with room to spare, or adjacent racks'
 // blocked zones overlap and seal the corridor between them.
 export const ROOM_CELL_SIZE = 170;
 
 // Max random per-axis offset applied to each server's grid slot (see room.ts layoutServers) so
 // racks read as a jittered grid instead of a rigid one. Worst case two adjacent racks jitter
-// straight at each other, eating 2x this from the 34px corridor left by ROOM_CELL_SIZE above
-// (170 - 2*68 = 34) — keep this below 17 or the corridor between two racks can seal shut.
+// straight at each other, eating 2x this from the 66px corridor left by ROOM_CELL_SIZE above
+// (170 - 2*52 = 66) — keep this below 33 or the corridor between two racks can seal shut.
 export const SERVER_JITTER = 12;
 
 // SECTION — Room walls (perimeter, drawn as a thick border and carved out of the walkable
@@ -41,9 +41,9 @@ export const PLACEHOLDER_COLORS = {
     LOCKED: 0x555555,
     IDLE: 0x8a8f98,
     INFECTED: 0xff2e4d,
-    IMMUNE: 0x8a8f98, // base stays neutral; the immunity ring (4.4) carries the blue "shielded" read
+    IMMUNE: 0x8fce00, // base stays neutral; the immunity ring (4.4) carries the blue "shielded" read
   },
-  immunityRing: 0x4fd2ff,
+  immunityRing: 0x8fce00,
   lockGlyph: 0x2a2a2a,
   guideAvatar: 0x6fce8f,
   dialogPanel: 0x1c1e26,

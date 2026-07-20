@@ -1,3 +1,4 @@
+import { SERVER_FOOTPRINT } from './config';
 import type { GameState, PlayerComponent, ServerComponent } from './types';
 
 export const ANTIVIRUS_COST = 1000;
@@ -40,8 +41,13 @@ export function updateAntivirusTower(state: GameState, deltaMs: number): void {
   }
 }
 
+// Distance is measured center-to-center, but the ring should protect a server the moment it
+// visually touches the server's sprite footprint, not only once the ring swallows the whole
+// server — so the check is padded by half the server's footprint (see SERVER_FOOTPRINT).
+// Without this, a server sitting right at the ring's edge reads as "inside" the ring on
+// screen but was left unprotected.
 export function isServerProtected(state: GameState, server: ServerComponent): boolean {
   const tower = state.antivirusTower;
   if (!tower) return false;
-  return Math.hypot(server.worldX - tower.worldX, server.worldY - tower.worldY) <= tower.radius;
+  return Math.hypot(server.worldX - tower.worldX, server.worldY - tower.worldY) <= tower.radius + SERVER_FOOTPRINT / 2;
 }

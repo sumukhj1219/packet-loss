@@ -43,6 +43,6 @@ export function createPlayer(startX: number, startY: number): PlayerComponent {
     patchTimer: 0,
     targetServerId: null,
     visual: buildPlayerVisual(),
-    boundingRadius: 32,
+    boundingRadius: 16,
   };
 }

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@wvdsh/sdk-js": "^1.3.36",
+    "geist": "^1.7.2",
     "pixi.js": "^8.19.0"
   }
 }

@@ -16,7 +16,8 @@ import { buildDialogBox } from './visuals/dialogBox';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
 import { buildDataPoolBar, updateDataPoolBar } from './visuals/dataPoolBar';
 import { buildDataPoolHud, updateDataPoolHud } from './visuals/hud';
-import { updatePlayerVisual } from './visuals/playerVisual';
+import { buildInfectedGrid, updateInfectedGrid } from './visuals/infectedGrid';
+import { loadPlayerTextures, updatePlayerVisual } from './visuals/playerVisual';
 import { loadServerTextures, updateServerVisual } from './visuals/serverVisual';
 import { triggerInitialOutbreak, VIRUS_TICK_MS, virusTick } from './virus';
 import Wavedash from '@wvdsh/sdk-js';
@@ -43,32 +44,81 @@ async function bootstrap(): Promise<void> {
   appRoot.innerHTML = '';
   appRoot.appendChild(app.canvas);
 
-  // Left-side data screen — text rendered over the screen.png bezel asset (400x760, see config).
-  const dataScreenContentEl = document.querySelector<HTMLPreElement>('#dataScreenContent');
+  // Left-side data screen — rows rendered over the screen.png bezel asset (400x760, see config).
+  // Built once as real elements (not a <pre> of joined lines) so label/value alignment and
+  // gaps are explicit CSS, and the AV TOWER value can be colored independently of its label.
+  function buildDataScreenContent(container: HTMLDivElement) {
+    container.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'screen-header';
+    header.textContent = 'SYSTEM STATUS';
+    container.appendChild(header);
+
+    const divider = document.createElement('div');
+    divider.className = 'screen-divider';
+    container.appendChild(divider);
+
+    function addRow(label: string): HTMLSpanElement {
+      const row = document.createElement('div');
+      row.className = 'screen-row';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'screen-label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'screen-value';
+      row.appendChild(labelEl);
+      row.appendChild(valueEl);
+      container.appendChild(row);
+      return valueEl;
+    }
+
+    const dataPoolValue = addRow('DATA POOL');
+
+    // Reserves the row #dataPoolBar (an absolute-positioned sibling overlay) occupies.
+    const barSpacer = document.createElement('div');
+    barSpacer.className = 'row-spacer-bar';
+    container.appendChild(barSpacer);
+
+    const patchesValue = addRow('PATCHES');
+    const uptimeValue = addRow('UPTIME');
+    const infectedValue = addRow('INFECTED');
+    const avTowerValue = addRow('AV TOWER');
+
+    // Reserves the row #infectedGrid (an absolute-positioned sibling overlay) occupies.
+    const gridSpacer = document.createElement('div');
+    gridSpacer.className = 'row-spacer-grid';
+    container.appendChild(gridSpacer);
+
+    return { dataPoolValue, patchesValue, uptimeValue, infectedValue, avTowerValue };
+  }
+
+  const dataScreenContentEl = document.querySelector<HTMLDivElement>('#dataScreenContent');
   if (!dataScreenContentEl) throw new Error('#dataScreenContent element not found');
-  const dataScreenContent = dataScreenContentEl;
+  const dataScreenValues = buildDataScreenContent(dataScreenContentEl);
 
   const dataPoolBarEl = document.querySelector<HTMLDivElement>('#dataPoolBar');
   if (!dataPoolBarEl) throw new Error('#dataPoolBar element not found');
   const dataPoolBarSlots = buildDataPoolBar(dataPoolBarEl);
+
+  const infectedGridEl = document.querySelector<HTMLDivElement>('#infectedGrid');
+  if (!infectedGridEl) throw new Error('#infectedGrid element not found');
+  const infectedGridCells = buildInfectedGrid(infectedGridEl);
 
   function updateDataScreen(state: GameState): void {
     const seconds = Math.floor(state.elapsedMs / 1000);
     const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
     const ss = String(seconds % 60).padStart(2, '0');
     const infectedCount = state.servers.filter((s) => s.state === 'INFECTED').length;
-    const towerStatus = state.antivirusTower ? `ACTIVE ${Math.ceil(state.antivirusCooldownMs / 1000)}s` : 'READY';
+    const towerActive = state.antivirusTower !== null;
+    const towerStatus = towerActive ? `ACTIVE ${Math.ceil(state.antivirusCooldownMs / 1000)}s` : 'READY';
 
-    dataScreenContent.textContent = [
-      'SYSTEM STATUS',
-      '',
-      `DATA POOL   ${Math.ceil(state.dataPool)} / ${state.maxDataPool} TB`,
-      '', // reserved line — #dataPoolBar overlays this slot, see style.css
-      `PATCHES     ${state.totalPatches}`,
-      `UPTIME      ${mm}:${ss}`,
-      `INFECTED    ${infectedCount} / ${state.servers.length}`,
-      `AV TOWER    ${towerStatus}`,
-    ].join('\n');
+    dataScreenValues.dataPoolValue.textContent = `${Math.ceil(state.dataPool)} / ${state.maxDataPool} TB`;
+    dataScreenValues.patchesValue.textContent = String(state.totalPatches);
+    dataScreenValues.uptimeValue.textContent = `${mm}:${ss}`;
+    dataScreenValues.infectedValue.textContent = `${infectedCount} / ${state.servers.length}`;
+    dataScreenValues.avTowerValue.textContent = towerStatus;
+    dataScreenValues.avTowerValue.classList.toggle('status-active', towerActive);
   }
 
   // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout math
@@ -91,9 +141,10 @@ async function bootstrap(): Promise<void> {
   floorTexture.source.scaleMode = 'nearest'; // keep 64x32 tile crisp when repeated, not blurred
   const wiresTexture = await Assets.load('/assets/wires.png');
   wiresTexture.source.scaleMode = 'nearest';
-  // Must resolve before createGameState()/startRun() build any server visuals.
+  // Must resolve before createGameState()/startRun() build any server/player visuals.
   await loadServerTextures();
   await loadAntivirusTextures();
+  await loadPlayerTextures();
 
   const roomFloor = new Container();
   roomFloor.label = 'roomFloor';
@@ -278,6 +329,7 @@ async function bootstrap(): Promise<void> {
     updateDataPoolHud(dataPoolHud, state);
     updateDataScreen(state);
     updateDataPoolBar(dataPoolBarSlots, state);
+    updateInfectedGrid(infectedGridCells, state);
 
     if (state.player.currentState !== prevPlayerState || state.player.facing !== prevFacing) {
       console.log(`[player] state=${state.player.currentState} facing=${state.player.facing} @ ${state.elapsedMs.toFixed(0)}ms`);

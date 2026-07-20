@@ -34,7 +34,7 @@ export interface PlayerComponent {
   patchTimer: number; // counts up 0 -> 1000ms during PATCHING
   targetServerId: number | null; // rack currently being patched
   visual: PIXI.Container;
-  boundingRadius: number; // 32 (half of 64x64), used for proximity checks
+  boundingRadius: number; // 16 (half of 32x32), used for proximity checks
 }
 
 // SECTION 1.6 — Room Layout

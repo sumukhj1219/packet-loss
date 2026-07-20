@@ -13,9 +13,9 @@ export function createGameState(): GameState {
     totalPatches: 0,
     lastDuplicationMultiple: 0,
     servers: createServers(layout),
-    // -32 boundingRadius matches createPlayer's fixed value; clampToRoom would otherwise
+    // -16 boundingRadius matches createPlayer's fixed value; clampToRoom would otherwise
     // yank the player up on the very first tick since this spot now sits inside the wall.
-    player: createPlayer(ROOM_WIDTH / 2, ROOM_HEIGHT - WALL_THICKNESS - 32),
+    player: createPlayer(ROOM_WIDTH / 2, ROOM_HEIGHT - WALL_THICKNESS - 16),
     dialog: {
       queue: [],
       activeEvent: null,

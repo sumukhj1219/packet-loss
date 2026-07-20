@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Geist Pixel Square';
+  src: url('/fonts/GeistPixel-Square.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
 }
@@ -42,36 +49,108 @@ body {
   background: url('/assets/screen.png') no-repeat center / contain;
 }
 
-/* Text content is boxed to 292x360 to stay within the screen cutout drawn into screen.png
-   (measured against the current art: cutout spans x 47-352, y 162-533, so this is centered
-   in that region with a couple px of clearance from the rounded corners). */
+/* Content is a flex column of fixed-height rows (not a <pre>) so gaps between sections are
+   explicit and consistent rather than relying on monospace line-height math. Two empty
+   .row-spacer-* elements reserve the vertical slots that #dataPoolBar and #infectedGrid
+   (positioned separately below, as absolute overlay siblings) occupy, so those rows still
+   push the following content down correctly. Boxed to 292px width to stay within the screen
+   cutout drawn into screen.png (measured against the current art: cutout spans x 47-352,
+   y 162-533); total content height is 346px, ending at 168+346=514px, well inside the cutout. */
 #dataScreenContent {
   position: absolute;
   left: 54px;
   top: 168px;
   width: 292px;
-  height: 360px;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: 'Geist Pixel Square', monospace;
   font-size: 15px;
-  line-height: 1.6;
   color: #c7d0dc;
-  white-space: pre-wrap;
 }
 
-/* 20 slots x 14px = 280px, centered in the 292px text box. Overlays the blank line
-   main.ts reserves right after the "DATA POOL" text line (3 lines x 24px line-height
-   from top:168px = 240px) — the 28px-tall bar overflows 4px into the next line's box,
-   which is fine since text glyphs don't fill their full line-height. */
+.screen-header {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  letter-spacing: 2px;
+  font-weight: 600;
+  color: #e4e9f0;
+}
+
+.screen-divider {
+  height: 2px;
+  background: #2a3140;
+}
+
+.screen-row {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.screen-label {
+  color: #8791a1;
+  letter-spacing: 1px;
+}
+
+.screen-value {
+  color: #c7d0dc;
+}
+
+/* AV TOWER value while the tower is active/on cooldown (see updateDataScreen in main.ts). */
+.screen-value.status-active {
+  color: #4dffa0;
+}
+
+/* Reserves the row occupied by #dataPoolBar (see its own rule below) in the flex flow. */
+.row-spacer-bar {
+  height: 28px;
+}
+
+/* Reserves the row occupied by #infectedGrid (see its own rule below) in the flex flow. */
+.row-spacer-grid {
+  height: 114px;
+}
+
+/* 20 slots x 14px = 280px, centered in the 292px content column. top = content top (168px)
+   + the .row-spacer-bar row's start offset (74px) within the flex column above. */
 #dataPoolBar {
   position: absolute;
   left: 60px;
-  top: 240px;
+  top: 242px;
   width: 280px;
   height: 28px;
   display: flex;
+}
+
+/* Infected-server grid — mirrors the main game screen's 5x4 rack layout (GRID_COLS x
+   GRID_ROWS). top = content top (168px) + the .row-spacer-grid row's start offset (232px)
+   within the flex column above, staying inside the screen.png cutout (bottom ~533px). */
+#infectedGrid {
+  position: absolute;
+  left: 54px;
+  top: 400px;
+  width: 292px;
+  display: grid;
+  grid-template-columns: repeat(5, 24px);
+  grid-auto-rows: 24px;
+  gap: 6px;
+  justify-content: center;
+}
+
+#infectedGrid .infected-cell {
+  width: 24px;
+  height: 24px;
+  background: #ffd24f;
+  box-shadow: 0 0 0 1px #05060a;
+}
+
+#infectedGrid .infected-cell.infected {
+  background: #ff2e4d;
 }
 
 #app {
