@@ -41,6 +41,96 @@
       "display_name": "Dedicated",
       "description": "Play 10 games.",
       "stat_requirement": null
+    },
+    {
+      "identifier": "century_club",
+      "display_name": "Century Club",
+      "description": "Complete 100 total patches across all runs.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "overachiever",
+      "display_name": "Overachiever",
+      "description": "Complete 100 patches in a single run.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "speed_demon",
+      "display_name": "Speed Demon",
+      "description": "Patch 5 infected servers in a row, each within 2 seconds of infection.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "lightning_reflexes",
+      "display_name": "Lightning Reflexes",
+      "description": "Patch a server within half a second of it becoming infected.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "untouchable",
+      "display_name": "Untouchable",
+      "description": "Reach 50 patches in a single run without your Data Pool ever dropping below 90%.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "clutch_save",
+      "display_name": "Clutch Save",
+      "description": "Patch an infected server while your Data Pool is below 10%.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "no_antivirus_needed",
+      "display_name": "No Antivirus Needed",
+      "description": "Complete 30 patches in a single run without ever placing an antivirus tower.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "first_line_of_defense",
+      "display_name": "First Line of Defense",
+      "description": "Place your first antivirus tower.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "area_denial",
+      "display_name": "Area Denial",
+      "description": "Instantly cure 3 or more infected servers with a single antivirus tower placement.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "tower_master",
+      "display_name": "Tower Master",
+      "description": "Place 10 antivirus towers across all runs.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "outbreak_veteran",
+      "display_name": "Outbreak Veteran",
+      "description": "Survive 5 virus duplication events across all runs.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "chaos_contained",
+      "display_name": "Chaos Contained",
+      "description": "Survive a moment with 8 or more servers infected at once.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "long_haul",
+      "display_name": "Long Haul",
+      "description": "Survive for 5 minutes in a single run.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "iron_will",
+      "display_name": "Iron Will",
+      "description": "Survive for 10 minutes in a single run.",
+      "stat_requirement": null
+    },
+    {
+      "identifier": "committed",
+      "display_name": "Committed",
+      "description": "Play 25 games.",
+      "stat_requirement": null
     }
   ],
   "stats": [
@@ -59,6 +149,10 @@
     {
       "identifier": "total_duplications_survived",
       "display_name": "Duplications Survived (Lifetime)"
+    },
+    {
+      "identifier": "total_towers_placed",
+      "display_name": "Antivirus Towers Placed (Lifetime)"
     }
   ]
 }

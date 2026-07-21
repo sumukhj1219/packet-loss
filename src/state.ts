@@ -29,5 +29,8 @@ export function createGameState(): GameState {
     elapsedMs: 0,
     antivirusTower: null,
     antivirusCooldownMs: 0,
+    antivirusTowersPlacedThisRun: 0,
+    dataPoolStayedAbove90ThisRun: true,
+    consecutiveRapidResponses: 0,
   };
 }

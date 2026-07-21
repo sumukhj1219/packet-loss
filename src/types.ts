@@ -83,4 +83,7 @@ export interface GameState {
   elapsedMs: number;
   antivirusTower: AntivirusTower | null;
   antivirusCooldownMs: number; // counts down from ANTIVIRUS_PLACEMENT_COOLDOWN_MS, 0 = ready to place
+  antivirusTowersPlacedThisRun: number; // NO_ANTIVIRUS_NEEDED achievement (Section 5.3)
+  dataPoolStayedAbove90ThisRun: boolean; // flips false the first time dataPool dips below 90%, UNTOUCHABLE achievement (Section 5.3)
+  consecutiveRapidResponses: number; // resets to 0 on any non-rapid infected patch, SPEED_DEMON achievement (Section 5.3)
 }

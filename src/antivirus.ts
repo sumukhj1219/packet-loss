@@ -1,5 +1,12 @@
+import { playTowerSfx } from './audio';
 import { SERVER_FOOTPRINT } from './config';
+import { recordTowerPlacedStat } from './stats';
 import type { GameState, PlayerComponent, ServerComponent } from './types';
+import { ACHIEVEMENTS, grantAchievement } from './wavedashIntegration';
+
+// SECTION 5.3 — AREA_DENIAL achievement: a single placement instantly curing this many
+// infected racks at once.
+const AREA_DENIAL_CURE_THRESHOLD = 3;
 
 export const ANTIVIRUS_COST = 1000;
 export const ANTIVIRUS_RADIUS = 140;
@@ -19,14 +26,22 @@ export function attemptPlaceAntivirusTower(state: GameState, player: PlayerCompo
   state.dataPool -= ANTIVIRUS_COST;
   state.antivirusTower = { worldX: player.x, worldY: player.y, radius: ANTIVIRUS_RADIUS };
   state.antivirusCooldownMs = ANTIVIRUS_DURATION_MS;
+  state.antivirusTowersPlacedThisRun += 1;
+  playTowerSfx();
+  recordTowerPlacedStat(); // lifetime tower count + FIRST_LINE_OF_DEFENSE/TOWER_MASTER checks (Section 5.3)
 
   // Instant cure, not a patch — no reward/achievement/totalPatches side effects, just clears
   // whatever was already infected inside the radius at the moment the tower goes down.
+  let curedCount = 0;
   for (const server of state.servers) {
     if (server.state === 'INFECTED' && isServerProtected(state, server)) {
       server.state = 'IDLE';
       server.infectedAtMs = null;
+      curedCount += 1;
     }
+  }
+  if (curedCount >= AREA_DENIAL_CURE_THRESHOLD) {
+    grantAchievement(ACHIEVEMENTS.AREA_DENIAL);
   }
 }
 

@@ -1,5 +1,6 @@
 import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
+import { playAchievementSfx, startBackgroundMusic } from './audio';
 import { PLACEHOLDER_COLORS, ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH, SIDE_SCREEN_WIDTH, WALL_THICKNESS } from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
@@ -15,7 +16,6 @@ import { buildAntivirusVisual, loadAntivirusTextures, updateAntivirusVisual } fr
 import { buildDialogBox } from './visuals/dialogBox';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
 import { buildDataPoolBar, updateDataPoolBar } from './visuals/dataPoolBar';
-import { buildDataPoolHud, updateDataPoolHud } from './visuals/hud';
 import { buildInfectedGrid, updateInfectedGrid } from './visuals/infectedGrid';
 import { loadPlayerTextures, updatePlayerVisual } from './visuals/playerVisual';
 import { loadServerTextures, updateServerVisual } from './visuals/serverVisual';
@@ -175,11 +175,6 @@ async function bootstrap(): Promise<void> {
   const playerLayer = new Container();
   playerLayer.label = 'playerLayer';
 
-  const hudLayer = new Container();
-  hudLayer.label = 'hudLayer';
-  const dataPoolHud = buildDataPoolHud();
-  hudLayer.addChild(dataPoolHud);
-
   const dialogBox = buildDialogBox(ROOM_WIDTH, ROOM_HEIGHT);
   const gameOverScreen = buildGameOverScreen(ROOM_WIDTH, ROOM_HEIGHT);
   const achievementToast = buildAchievementToast(ROOM_WIDTH);
@@ -190,7 +185,6 @@ async function bootstrap(): Promise<void> {
     antivirusVisual,
     serverLayer,
     playerLayer,
-    hudLayer,
     dialogBox.container,
     gameOverScreen.container,
     achievementToast.container,
@@ -267,6 +261,7 @@ async function bootstrap(): Promise<void> {
   });
 
   startRun();
+  startBackgroundMusic();
 
   app.ticker.add((ticker) => {
     const deltaMs = ticker.deltaMS;
@@ -326,7 +321,6 @@ async function bootstrap(): Promise<void> {
 
     updateAntivirusVisual(antivirusVisual, state);
 
-    updateDataPoolHud(dataPoolHud, state);
     updateDataScreen(state);
     updateDataPoolBar(dataPoolBarSlots, state);
     updateInfectedGrid(infectedGridCells, state);
@@ -339,6 +333,7 @@ async function bootstrap(): Promise<void> {
 
     for (const id of consumeAchievementNotifications()) {
       toastQueue.push(ACHIEVEMENT_LABELS[id] ?? id);
+      playAchievementSfx();
     }
     if (!toastActive && toastQueue.length > 0) {
       achievementToast.show(toastQueue.shift()!);

@@ -12,6 +12,21 @@ export const ACHIEVEMENTS = {
   VETERAN: 'veteran', // 50 patches completed within a single run
   MARATHON: 'marathon', // survived 3 minutes of elapsed time in a single run
   DEDICATED: 'dedicated', // played 10 games, lifetime
+  CENTURY_CLUB: 'century_club', // 100 total patches, lifetime
+  OVERACHIEVER: 'overachiever', // 100 patches completed within a single run
+  SPEED_DEMON: 'speed_demon', // 5 consecutive rapid-response patches in a row, single run
+  LIGHTNING_REFLEXES: 'lightning_reflexes', // patched a rack within 500ms of it going INFECTED
+  UNTOUCHABLE: 'untouchable', // game ended with dataPool >= 90%
+  CLUTCH_SAVE: 'clutch_save', // patched an infected rack while dataPool was below 10%
+  NO_ANTIVIRUS_NEEDED: 'no_antivirus_needed', // 30 patches in a single run without ever placing an AV tower
+  FIRST_LINE_OF_DEFENSE: 'first_line_of_defense', // placed an AV tower for the first time, lifetime
+  AREA_DENIAL: 'area_denial', // a single AV tower placement instantly cured 3+ infected racks
+  TOWER_MASTER: 'tower_master', // 10 AV towers placed, lifetime
+  OUTBREAK_VETERAN: 'outbreak_veteran', // survived 5 duplication events, lifetime
+  CHAOS_CONTAINED: 'chaos_contained', // 8+ racks infected simultaneously and survived the tick
+  LONG_HAUL: 'long_haul', // survived 5 minutes of elapsed time in a single run
+  IRON_WILL: 'iron_will', // survived 10 minutes of elapsed time in a single run
+  COMMITTED: 'committed', // played 25 games, lifetime
 } as const;
 
 // Display names for the top-center "achievement unlocked" toast — must match
@@ -25,6 +40,21 @@ export const ACHIEVEMENT_LABELS: Record<string, string> = {
   [ACHIEVEMENTS.VETERAN]: 'Veteran',
   [ACHIEVEMENTS.MARATHON]: 'Marathon',
   [ACHIEVEMENTS.DEDICATED]: 'Dedicated',
+  [ACHIEVEMENTS.CENTURY_CLUB]: 'Century Club',
+  [ACHIEVEMENTS.OVERACHIEVER]: 'Overachiever',
+  [ACHIEVEMENTS.SPEED_DEMON]: 'Speed Demon',
+  [ACHIEVEMENTS.LIGHTNING_REFLEXES]: 'Lightning Reflexes',
+  [ACHIEVEMENTS.UNTOUCHABLE]: 'Untouchable',
+  [ACHIEVEMENTS.CLUTCH_SAVE]: 'Clutch Save',
+  [ACHIEVEMENTS.NO_ANTIVIRUS_NEEDED]: 'No Antivirus Needed',
+  [ACHIEVEMENTS.FIRST_LINE_OF_DEFENSE]: 'First Line of Defense',
+  [ACHIEVEMENTS.AREA_DENIAL]: 'Area Denial',
+  [ACHIEVEMENTS.TOWER_MASTER]: 'Tower Master',
+  [ACHIEVEMENTS.OUTBREAK_VETERAN]: 'Outbreak Veteran',
+  [ACHIEVEMENTS.CHAOS_CONTAINED]: 'Chaos Contained',
+  [ACHIEVEMENTS.LONG_HAUL]: 'Long Haul',
+  [ACHIEVEMENTS.IRON_WILL]: 'Iron Will',
+  [ACHIEVEMENTS.COMMITTED]: 'Committed',
 };
 
 // Not in the PRD — a lightweight notification queue so the UI layer can show a toast
@@ -38,15 +68,28 @@ const pendingNotifications: string[] = [];
 //
 // Achievements only ever unlock once — grantAchievement can legitimately be called
 // repeatedly for the same id (e.g. SURVIVED_OUTBREAK_DUPLICATION fires on every 10-patch
-// milestone), so this guards on Wavedash's own unlocked-state instead of trusting each
-// call site to track "have I already granted this" itself.
+// milestone). Originally this guarded solely on Wavedash.getAchievement(id), but that
+// SDK call isn't actually ready the instant Wavedash.init() returns — it depends on a
+// background subscription that resolves shortly after boot. A milestone firing before
+// that subscription resolves saw getAchievement()/setAchievement() both silently no-op
+// (SDK-internal "not ready" guard), so the *next* milestone re-read false and pushed a
+// second toast for the same achievement. Track "already notified" locally so a single
+// page session never re-announces an id, regardless of SDK readiness.
+const grantedThisSession = new Set<string>();
+
 export function grantAchievement(id: string): void {
+  if (grantedThisSession.has(id)) return;
+
   try {
-    if (Wavedash.getAchievement(id)) return;
+    if (Wavedash.getAchievement(id)) {
+      grantedThisSession.add(id);
+      return;
+    }
   } catch (err) {
     console.error(`[Wavedash] failed to read achievement ${id}, attempting grant anyway`, err);
   }
 
+  grantedThisSession.add(id);
   pendingNotifications.push(id);
   try {
     Wavedash.setAchievement(id, true);

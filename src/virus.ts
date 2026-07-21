@@ -1,8 +1,14 @@
 import { isServerProtected } from './antivirus';
+import { playBuzzerSfx } from './audio';
 import { GRID_COLS, GRID_ROWS } from './config';
 import { recordDuplicationSurvivedStat } from './stats';
 import type { GameState } from './types';
 import { ACHIEVEMENTS, grantAchievement } from './wavedashIntegration';
+
+// SECTION 5.3 — CHAOS_CONTAINED achievement: this many racks infected at once, survived.
+const CHAOS_CONTAINED_INFECTED_THRESHOLD = 8;
+// SECTION 5.3 — UNTOUCHABLE tracking: dataPool ratio below which the run is no longer "flawless".
+const DATA_POOL_UNTOUCHED_RATIO = 0.9;
 
 // SECTION 2.1 — Boundary-checked neighbor resolution (precomputed once at grid init)
 export function computeNeighborIds(id: number): number[] {
@@ -34,6 +40,7 @@ function spawnRandomInfection(state: GameState) {
   const target = eligible[Math.floor(Math.random() * eligible.length)];
   target.state = 'INFECTED';
   target.infectedAtMs = state.elapsedMs;
+  playBuzzerSfx();
   return target;
 }
 
@@ -57,6 +64,9 @@ export function virusTick(state: GameState): void {
 
   for (const source of infected) {
     state.dataPool = Math.max(0, state.dataPool - source.dataDrainPerSecond * (VIRUS_TICK_MS / 1000));
+    if (state.dataPool / state.maxDataPool < DATA_POOL_UNTOUCHED_RATIO) {
+      state.dataPoolStayedAbove90ThisRun = false;
+    }
 
     for (const nId of source.neighborIds) {
       const neighbor = state.servers[nId];
@@ -68,6 +78,7 @@ export function virusTick(state: GameState): void {
       if (Math.random() < SPREAD_CHANCE_PER_NEIGHBOR) {
         neighbor.state = 'INFECTED';
         neighbor.infectedAtMs = state.elapsedMs;
+        playBuzzerSfx();
         console.log(`[virus] spread ${source.id} -> ${neighbor.id} @ ${state.elapsedMs.toFixed(0)}ms`);
       }
     }
@@ -89,6 +100,13 @@ export function virusTick(state: GameState): void {
   if (infected.length === 0) {
     const target = spawnRandomInfection(state);
     if (target) console.log(`[virus] re-outbreak @ server ${target.id} (no active infections) @ ${state.elapsedMs.toFixed(0)}ms`);
+  }
+
+  // Re-count post-spread — `infected` above is a pre-spread snapshot, and this tick's spread
+  // loop can push the live count past the threshold within the same tick.
+  const currentInfectedCount = state.servers.filter((s) => s.state === 'INFECTED').length;
+  if (currentInfectedCount >= CHAOS_CONTAINED_INFECTED_THRESHOLD) {
+    grantAchievement(ACHIEVEMENTS.CHAOS_CONTAINED);
   }
 }
 
@@ -114,6 +132,7 @@ export function checkDuplicationThreshold(state: GameState): void {
     const target = eligible.splice(idx, 1)[0];
     target.state = 'INFECTED';
     target.infectedAtMs = state.elapsedMs;
+    playBuzzerSfx();
     spawned.push(target.id);
   }
 
