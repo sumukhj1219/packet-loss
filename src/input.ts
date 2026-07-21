@@ -15,6 +15,7 @@ type MoveDirection = (typeof MOVE_KEYS)[MoveKeyCode];
 const heldDirections = new Set<MoveDirection>();
 let interactJustPressed = false;
 let antivirusJustPressed = false;
+let sprintHeld = false;
 
 export function initInput(): void {
   window.addEventListener('keydown', (e) => {
@@ -29,10 +30,18 @@ export function initInput(): void {
     if (e.code === 'KeyT' && !e.repeat) {
       antivirusJustPressed = true;
     }
+
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      sprintHeld = true;
+    }
   });
   window.addEventListener('keyup', (e) => {
     const dir = MOVE_KEYS[e.code as MoveKeyCode];
     if (dir) heldDirections.delete(dir);
+
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      sprintHeld = false;
+    }
   });
 }
 
@@ -52,6 +61,12 @@ export function consumeAntivirusPress(): boolean {
     return true;
   }
   return false;
+}
+
+// Level-triggered (unlike the presses above) — sprint is active for as long as Shift is
+// physically held, not a one-shot toggle.
+export function isSprintHeld(): boolean {
+  return sprintHeld;
 }
 
 // Returns a unit-length (or zero) axis vector — diagonals are normalized so

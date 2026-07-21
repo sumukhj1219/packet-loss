@@ -5,6 +5,15 @@ export const RACK_COUNT = GRID_COLS * GRID_ROWS; // 20
 
 export const RACK_TILE_SIZE = 96; // px, includes padding gutter (bookkeeping only, see 1.1)
 
+// SECTION — Player movement & sprint/stamina
+// Lowered from 180 now that sprint covers burst movement — the old flat 180 made every
+// approach feel the same; base speed now reads as deliberately more cautious.
+export const PLAYER_SPEED = 140; // px/sec, walking
+export const PLAYER_SPRINT_SPEED = 240; // px/sec while sprinting (Shift), gated by stamina
+export const STAMINA_MAX = 100;
+export const STAMINA_DRAIN_PER_SECOND = 40; // full tank empties after ~2.5s of continuous sprint
+export const STAMINA_REGEN_PER_SECOND = 25; // ~4s to refill from empty, only while not sprinting
+
 // SECTION 1.6 — Room Layout & Player Collision (top-down room-space)
 export const ROOM_WIDTH = 960; // px, playable floor area
 // Tall enough that the top/bottom rows of the 4-row grid clear the room walls by more than

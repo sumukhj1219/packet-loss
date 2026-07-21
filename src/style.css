@@ -55,7 +55,8 @@ body {
    (positioned separately below, as absolute overlay siblings) occupy, so those rows still
    push the following content down correctly. Boxed to 292px width to stay within the screen
    cutout drawn into screen.png (measured against the current art: cutout spans x 47-352,
-   y 162-533); total content height is 346px, ending at 168+346=514px, well inside the cutout. */
+   y 162-533); total content height is 358px, ending at 168+358=526px, inside the cutout
+   (7px to spare — gap was trimmed from 10px to 8px to fit the STAMINA row within budget). */
 #dataScreenContent {
   position: absolute;
   left: 54px;
@@ -65,7 +66,7 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   font-family: 'Geist Pixel Square', monospace;
   font-size: 15px;
   color: #c7d0dc;
@@ -117,23 +118,45 @@ body {
 }
 
 /* 20 slots x 14px = 280px, centered in the 292px content column. top = content top (168px)
-   + the .row-spacer-bar row's start offset (74px) within the flex column above. */
+   + the .row-spacer-bar row's start offset (68px) within the flex column above. */
 #dataPoolBar {
   position: absolute;
   left: 60px;
-  top: 242px;
+  top: 236px;
   width: 280px;
   height: 28px;
   display: flex;
 }
 
+/* Stamina meter — unlike #dataPoolBar/#infectedGrid this is a plain inline element inside
+   its own normal-flow .screen-row (see buildDataScreenContent in main.ts), not a separate
+   absolute overlay, since there's no dedicated sprite asset for it and a flat CSS fill bar
+   needs no extra positioning math. Width matches the .screen-value column's usual space. */
+.stamina-track {
+  width: 140px;
+  height: 10px;
+  background: #1c2230;
+  border: 1px solid #2a3140;
+  overflow: hidden;
+}
+
+.stamina-fill {
+  height: 100%;
+  background: #4fa8ff;
+  transition: width 120ms linear;
+}
+
+.stamina-fill.stamina-low {
+  background: #ff2e4d;
+}
+
 /* Infected-server grid — mirrors the main game screen's 5x4 rack layout (GRID_COLS x
-   GRID_ROWS). top = content top (168px) + the .row-spacer-grid row's start offset (232px)
+   GRID_ROWS). top = content top (168px) + the .row-spacer-grid row's start offset (244px)
    within the flex column above, staying inside the screen.png cutout (bottom ~533px). */
 #infectedGrid {
   position: absolute;
   left: 54px;
-  top: 400px;
+  top: 412px;
   width: 292px;
   display: grid;
   grid-template-columns: repeat(5, 24px);

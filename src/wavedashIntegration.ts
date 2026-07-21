@@ -106,7 +106,7 @@ export function consumeAchievementNotifications(): string[] {
 }
 
 const LEADERBOARD_NAME = 'patches-survived';
-const LEADERBOARD_FETCH_LIMIT = 10;
+const LEADERBOARD_FETCH_LIMIT = 15; // matches gameOverScreen.ts's LB_MAX_ROWS
 
 export interface LeaderboardRow {
   rank: number;

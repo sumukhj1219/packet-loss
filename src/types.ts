@@ -27,7 +27,8 @@ export interface PlayerComponent {
   y: number;
   velocityX: number;
   velocityY: number;
-  speed: number; // px/sec, e.g. 180
+  speed: number; // px/sec, walking (see PLAYER_SPEED)
+  stamina: number; // 0..STAMINA_MAX, drains while sprinting and moving, regenerates otherwise
   currentState: PlayerState;
   facing: FacingDirection;
   facingLocked: boolean; // true during PATCHING

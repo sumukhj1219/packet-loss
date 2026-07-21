@@ -25,11 +25,29 @@ export function bootSequence(state: GameState): void {
 
 // SECTION 3.1 — tick-driven trigger evaluation
 export function checkDialogTriggers(state: GameState): void {
+  if (state.totalPatches === 2) {
+    fireDialogEvent(
+      state,
+      'av_tower_intro',
+      'New tool: press T to drop an Antivirus Tower (1000 TB). Instantly cures nearby infected racks and shields them for 10s.',
+      'guide',
+    );
+  }
+
+  if (state.totalPatches === 4) {
+    fireDialogEvent(
+      state,
+      'economy_and_immunity_tip',
+      'Tip: curing an infected rack refunds 350 TB and grants it 5s of immunity. Prioritize infected racks over idle ones.',
+      'guide',
+    );
+  }
+
   if (state.totalPatches === 5) {
     fireDialogEvent(
       state,
       'mid_game_5_patches',
-      "Good job! You've stabilized 5 rigs. Heads up, the virus updates its firewall every 10 patches!",
+      "Good job! 5 rigs stabilized. Heads up — the virus updates its firewall every 10 patches, adding 2 more infections.",
     );
   }
 

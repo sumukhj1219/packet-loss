@@ -1,4 +1,4 @@
-import { GRID_COLS } from './config';
+import { GRID_COLS, PLAYER_SPEED, STAMINA_MAX } from './config';
 import { layoutServers } from './room';
 import { buildPlayerVisual } from './visuals/playerVisual';
 import { buildImmunityRingVisual, buildServerVisual } from './visuals/serverVisual';
@@ -36,7 +36,8 @@ export function createPlayer(startX: number, startY: number): PlayerComponent {
     y: startY,
     velocityX: 0,
     velocityY: 0,
-    speed: 180,
+    speed: PLAYER_SPEED,
+    stamina: STAMINA_MAX,
     currentState: 'IDLE',
     facing: 'DOWN',
     facingLocked: false,

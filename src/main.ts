@@ -1,10 +1,18 @@
 import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
 import { playAchievementSfx, startBackgroundMusic } from './audio';
-import { PLACEHOLDER_COLORS, ROOM_BACKGROUND_COLOR, ROOM_HEIGHT, ROOM_WIDTH, SIDE_SCREEN_WIDTH, WALL_THICKNESS } from './config';
+import {
+  PLACEHOLDER_COLORS,
+  ROOM_BACKGROUND_COLOR,
+  ROOM_HEIGHT,
+  ROOM_WIDTH,
+  SIDE_SCREEN_WIDTH,
+  STAMINA_MAX,
+  WALL_THICKNESS,
+} from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
-import { consumeAntivirusPress, consumeInteractPress, getMovementAxis, initInput } from './input';
+import { consumeAntivirusPress, consumeInteractPress, getMovementAxis, initInput, isSprintHeld } from './input';
 import { attemptPatch, findInteractableServer } from './interaction';
 import { updateImmunityTimers, updatePatching } from './patch';
 import { updatePlayerMovement } from './player';
@@ -85,12 +93,29 @@ async function bootstrap(): Promise<void> {
     const infectedValue = addRow('INFECTED');
     const avTowerValue = addRow('AV TOWER');
 
+    // Unlike DATA POOL/INFECTED (which reserve a row for a separately absolute-positioned
+    // overlay), the stamina bar is a plain inline element inside its own row — no sprite
+    // asset for it, and a 20px-tall row has plenty of room for a simple CSS fill bar.
+    const staminaRow = document.createElement('div');
+    staminaRow.className = 'screen-row';
+    const staminaLabel = document.createElement('span');
+    staminaLabel.className = 'screen-label';
+    staminaLabel.textContent = 'STAMINA';
+    const staminaTrack = document.createElement('div');
+    staminaTrack.className = 'stamina-track';
+    const staminaFill = document.createElement('div');
+    staminaFill.className = 'stamina-fill';
+    staminaTrack.appendChild(staminaFill);
+    staminaRow.appendChild(staminaLabel);
+    staminaRow.appendChild(staminaTrack);
+    container.appendChild(staminaRow);
+
     // Reserves the row #infectedGrid (an absolute-positioned sibling overlay) occupies.
     const gridSpacer = document.createElement('div');
     gridSpacer.className = 'row-spacer-grid';
     container.appendChild(gridSpacer);
 
-    return { dataPoolValue, patchesValue, uptimeValue, infectedValue, avTowerValue };
+    return { dataPoolValue, patchesValue, uptimeValue, infectedValue, avTowerValue, staminaFill };
   }
 
   const dataScreenContentEl = document.querySelector<HTMLDivElement>('#dataScreenContent');
@@ -119,6 +144,10 @@ async function bootstrap(): Promise<void> {
     dataScreenValues.infectedValue.textContent = `${infectedCount} / ${state.servers.length}`;
     dataScreenValues.avTowerValue.textContent = towerStatus;
     dataScreenValues.avTowerValue.classList.toggle('status-active', towerActive);
+
+    const staminaRatio = state.player.stamina / STAMINA_MAX;
+    dataScreenValues.staminaFill.style.width = `${(staminaRatio * 100).toFixed(0)}%`;
+    dataScreenValues.staminaFill.classList.toggle('stamina-low', staminaRatio <= 0.2);
   }
 
   // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout math
@@ -283,7 +312,7 @@ async function bootstrap(): Promise<void> {
           virusTick(state);
         }
 
-        updatePlayerMovement(state.player, getMovementAxis(), deltaMs / 1000);
+        updatePlayerMovement(state.player, getMovementAxis(), deltaMs / 1000, isSprintHeld());
         resolveServerCollisions(state.player, state.servers);
         clampToRoom(state.player);
 
