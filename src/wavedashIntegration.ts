@@ -29,39 +29,6 @@ export const ACHIEVEMENTS = {
   COMMITTED: 'committed', // played 25 games, lifetime
 } as const;
 
-// Display names for the top-center "achievement unlocked" toast — must match
-// wavedash-import.json's display_name fields so the in-game label and the
-// Developer Portal agree.
-export const ACHIEVEMENT_LABELS: Record<string, string> = {
-  [ACHIEVEMENTS.FIRST_PATCH]: 'First Patch',
-  [ACHIEVEMENTS.SURVIVED_OUTBREAK_DUPLICATION]: 'Outbreak Survivor',
-  [ACHIEVEMENTS.DATA_GUARDIAN]: 'Data Guardian',
-  [ACHIEVEMENTS.RAPID_RESPONSE]: 'Rapid Response',
-  [ACHIEVEMENTS.VETERAN]: 'Veteran',
-  [ACHIEVEMENTS.MARATHON]: 'Marathon',
-  [ACHIEVEMENTS.DEDICATED]: 'Dedicated',
-  [ACHIEVEMENTS.CENTURY_CLUB]: 'Century Club',
-  [ACHIEVEMENTS.OVERACHIEVER]: 'Overachiever',
-  [ACHIEVEMENTS.SPEED_DEMON]: 'Speed Demon',
-  [ACHIEVEMENTS.LIGHTNING_REFLEXES]: 'Lightning Reflexes',
-  [ACHIEVEMENTS.UNTOUCHABLE]: 'Untouchable',
-  [ACHIEVEMENTS.CLUTCH_SAVE]: 'Clutch Save',
-  [ACHIEVEMENTS.NO_ANTIVIRUS_NEEDED]: 'No Antivirus Needed',
-  [ACHIEVEMENTS.FIRST_LINE_OF_DEFENSE]: 'First Line of Defense',
-  [ACHIEVEMENTS.AREA_DENIAL]: 'Area Denial',
-  [ACHIEVEMENTS.TOWER_MASTER]: 'Tower Master',
-  [ACHIEVEMENTS.OUTBREAK_VETERAN]: 'Outbreak Veteran',
-  [ACHIEVEMENTS.CHAOS_CONTAINED]: 'Chaos Contained',
-  [ACHIEVEMENTS.LONG_HAUL]: 'Long Haul',
-  [ACHIEVEMENTS.IRON_WILL]: 'Iron Will',
-  [ACHIEVEMENTS.COMMITTED]: 'Committed',
-};
-
-// Not in the PRD — a lightweight notification queue so the UI layer can show a toast
-// the moment an achievement unlocks, without grantAchievement (called deep in game
-// logic — patch.ts, virus.ts) needing to know anything about rendering.
-const pendingNotifications: string[] = [];
-
 // Wavedash's setAchievement is synchronous and local-only (no promise) — storeNow
 // forces an immediate backend write instead of the default throttled persist, since
 // the PRD wants these to survive a crash mid-run, not just a graceful game over.
@@ -72,9 +39,9 @@ const pendingNotifications: string[] = [];
 // SDK call isn't actually ready the instant Wavedash.init() returns — it depends on a
 // background subscription that resolves shortly after boot. A milestone firing before
 // that subscription resolves saw getAchievement()/setAchievement() both silently no-op
-// (SDK-internal "not ready" guard), so the *next* milestone re-read false and pushed a
-// second toast for the same achievement. Track "already notified" locally so a single
-// page session never re-announces an id, regardless of SDK readiness.
+// (SDK-internal "not ready" guard), so the *next* milestone re-read false and re-granted
+// the same achievement. Track "already granted" locally so a single page session never
+// re-announces an id, regardless of SDK readiness.
 const grantedThisSession = new Set<string>();
 
 export function grantAchievement(id: string): void {
@@ -90,19 +57,11 @@ export function grantAchievement(id: string): void {
   }
 
   grantedThisSession.add(id);
-  pendingNotifications.push(id);
   try {
     Wavedash.setAchievement(id, true);
   } catch (err) {
     console.error(`[Wavedash] failed to set achievement ${id}`, err);
   }
-}
-
-// Call once per frame from the UI layer; drains and returns any achievements
-// unlocked since the last call.
-export function consumeAchievementNotifications(): string[] {
-  if (pendingNotifications.length === 0) return [];
-  return pendingNotifications.splice(0, pendingNotifications.length);
 }
 
 const LEADERBOARD_NAME = 'patches-survived';

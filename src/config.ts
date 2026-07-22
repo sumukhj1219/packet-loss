@@ -54,7 +54,6 @@ export const PLACEHOLDER_COLORS = {
   },
   immunityRing: 0x8fce00,
   lockGlyph: 0x2a2a2a,
-  guideAvatar: 0x6fce8f,
   dialogPanel: 0x1c1e26,
   dialogPanelBorder: 0x4fa8ff,
   wall: 0x2f333d,

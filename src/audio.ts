@@ -25,9 +25,9 @@ function playOneShot(template: HTMLAudioElement): void {
   instance.play().catch(() => {});
 }
 
-const achievementSfx = loadSfx('/assets/achievement.mp3', SFX_VOLUME);
 const buzzerSfx = loadSfx('/assets/buzzer.mp3', SFX_VOLUME);
 const towerSfx = loadSfx('/assets/tower.mp3', SFX_VOLUME);
+const dialogSfx = loadSfx('/assets/dialog.mp3', SFX_VOLUME);
 
 const backgroundMusic: PitchPreservingAudioElement = loadSfx('/assets/background.mp3', BACKGROUND_VOLUME);
 backgroundMusic.loop = true;
@@ -61,14 +61,14 @@ export function startBackgroundMusic(): void {
     });
 }
 
-export function playAchievementSfx(): void {
-  playOneShot(achievementSfx);
-}
-
 export function playBuzzerSfx(): void {
   playOneShot(buzzerSfx);
 }
 
 export function playTowerSfx(): void {
   playOneShot(towerSfx);
+}
+
+export function playDialogSfx(): void {
+  playOneShot(dialogSfx);
 }

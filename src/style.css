@@ -33,12 +33,69 @@ body {
 }
 
 #gameRoot {
+  position: relative;
   width: 1360px;
   height: 760px;
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
   transform-origin: center center;
+}
+
+/* Home and loading screens are absolute overlays covering the full 1360x760 root — not
+   fixed to the viewport — so they scale as one unit with everything else via
+   fitRootToViewport (main.ts) instead of drifting out of alignment at odd viewport sizes.
+   z-index is required, not just DOM order: #dataScreen is also `position: relative` and
+   comes later in the DOM, so without it #dataScreen's bezel would paint on top of these.
+   Shown/hidden by main.ts as the load sequence progresses. */
+#homeScreen,
+#loadingScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  width: 1360px;
+  height: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: #05060a;
+  font-family: 'Geist Pixel Square', monospace;
+}
+
+#loadingScreen {
+  display: none; /* toggled by main.ts once the player presses Start */
+  gap: 20px;
+}
+
+#homeTitle {
+  margin: 0;
+  font-size: 64px;
+  letter-spacing: 8px;
+  color: #4fa8ff;
+}
+
+#startButton {
+  font-family: inherit;
+  font-size: 20px;
+  letter-spacing: 3px;
+  padding: 18px 56px;
+  background: #4fa8ff;
+  color: #05060a;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#startButton:hover {
+  background: #6fb8ff;
+}
+
+#loadingText {
+  font-size: 20px;
+  letter-spacing: 4px;
+  color: #8791a1;
 }
 
 #dataScreen {

@@ -1,11 +1,15 @@
 import { Container, Text } from 'pixi.js';
+import { playDialogSfx } from '../audio';
 import type { DialogEvent } from '../types';
-import { buildAlertAvatarVisual, buildDialogPanelVisual, buildGuideAvatarVisual } from './dialogVisual';
+import { buildDialogFrameVisual } from './dialogVisual';
 
+// Matches public/assets/dialog.png (720x130) — text area offsets measured from the art.
 const PANEL_WIDTH = 720;
-const PANEL_HEIGHT = 110;
-const PANEL_PADDING = 20;
-const AVATAR_OFFSET_X = 48;
+const PANEL_HEIGHT = 130;
+const TEXT_OFFSET_X = 129;
+const TEXT_OFFSET_Y = 39;
+const TEXT_WIDTH = 547;
+const TEXT_HEIGHT = 59;
 
 export interface DialogBox {
   container: Container;
@@ -18,50 +22,49 @@ export function buildDialogBox(roomWidth: number, roomHeight: number): DialogBox
   container.y = roomHeight - PANEL_HEIGHT - 24;
   container.visible = false;
 
-  const panel = buildDialogPanelVisual(PANEL_WIDTH, PANEL_HEIGHT);
+  const panel = buildDialogFrameVisual();
   container.addChild(panel);
 
-  const guideAvatar = buildGuideAvatarVisual();
-  guideAvatar.x = PANEL_PADDING + AVATAR_OFFSET_X;
-  guideAvatar.y = PANEL_HEIGHT / 2;
-  container.addChild(guideAvatar);
-
-  const alertAvatar = buildAlertAvatarVisual();
-  alertAvatar.x = PANEL_PADDING + AVATAR_OFFSET_X;
-  alertAvatar.y = PANEL_HEIGHT / 2;
-  container.addChild(alertAvatar);
-
-  const textX = PANEL_PADDING * 2 + AVATAR_OFFSET_X * 2;
   const messageText = new Text({
     text: '',
     style: {
       fill: 0xffffff,
-      fontSize: 16,
+      fontSize: 13,
       fontFamily: 'sans-serif',
       wordWrap: true,
-      wordWrapWidth: PANEL_WIDTH - textX - PANEL_PADDING,
+      wordWrapWidth: TEXT_WIDTH,
     },
   });
-  messageText.x = textX;
-  messageText.y = PANEL_PADDING;
+  messageText.x = TEXT_OFFSET_X;
+  messageText.y = TEXT_OFFSET_Y;
   container.addChild(messageText);
 
   const hintText = new Text({
     text: 'Press any key or click to continue',
-    style: { fill: 0x6b7280, fontSize: 12, fontFamily: 'sans-serif' },
+    style: { fill: 0x6b7280, fontSize: 10, fontFamily: 'sans-serif' },
   });
-  hintText.x = textX;
-  hintText.y = PANEL_HEIGHT - PANEL_PADDING - 14;
+  hintText.x = TEXT_OFFSET_X;
+  hintText.y = TEXT_OFFSET_Y + TEXT_HEIGHT - 14;
   container.addChild(hintText);
+
+  let currentEvent: DialogEvent | null = null;
 
   function setEvent(event: DialogEvent | null): void {
     container.visible = event !== null;
-    if (!event) return;
+    if (!event) {
+      currentEvent = null;
+      return;
+    }
+
+    // setEvent is called every ticker frame with whatever's active — only (re)play the sfx
+    // and update text when a genuinely new dialog appears, not on every frame it's on screen.
+    if (event === currentEvent) return;
+    currentEvent = event;
 
     messageText.text = event.text;
-    guideAvatar.visible = event.portrait === 'guide';
-    alertAvatar.visible = event.portrait === 'alert';
+    messageText.style.fill = event.portrait === 'alert' ? 0x4ade80 : 0xffffff;
     hintText.text = event.pausesSimulation ? 'Press ENTER to continue' : 'Press any key or click to continue';
+    playDialogSfx();
   }
 
   return { container, setEvent };

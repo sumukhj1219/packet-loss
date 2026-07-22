@@ -1,6 +1,6 @@
 import { Application, Assets, Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
-import { playAchievementSfx, startBackgroundMusic } from './audio';
+import { startBackgroundMusic } from './audio';
 import {
   PLACEHOLDER_COLORS,
   ROOM_BACKGROUND_COLOR,
@@ -19,9 +19,9 @@ import { updatePlayerMovement } from './player';
 import { checkTimeBasedAchievements, recordGameOverStats, recordGameStart, requestStatsOnBoot } from './stats';
 import { createGameState } from './state';
 import type { GameState } from './types';
-import { buildAchievementToast } from './visuals/achievementToast';
 import { buildAntivirusVisual, loadAntivirusTextures, updateAntivirusVisual } from './visuals/antivirusVisual';
 import { buildDialogBox } from './visuals/dialogBox';
+import { loadDialogTextures } from './visuals/dialogVisual';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
 import { buildDataPoolBar, updateDataPoolBar } from './visuals/dataPoolBar';
 import { buildInfectedGrid, updateInfectedGrid } from './visuals/infectedGrid';
@@ -29,13 +29,18 @@ import { loadPlayerTextures, updatePlayerVisual } from './visuals/playerVisual';
 import { loadServerTextures, updateServerVisual } from './visuals/serverVisual';
 import { triggerInitialOutbreak, VIRUS_TICK_MS, virusTick } from './virus';
 import Wavedash from '@wvdsh/sdk-js';
-import { ACHIEVEMENT_LABELS, consumeAchievementNotifications, fetchLeaderboardEntries, onGameOver } from './wavedashIntegration';
+import { fetchLeaderboardEntries, onGameOver } from './wavedashIntegration';
 import './style.css';
 
+// SECTION 5.1 — synchronous, not a promise: internally this signals the Wavedash host page
+// to dismiss ITS OWN platform-level loading screen (the game is embedded in an iframe the
+// host keeps hidden until init() fires) — nothing in our page, including the home screen
+// below, is visible until this runs. Must happen at module load, not inside bootstrap(),
+// or the Start button ends up hidden behind a host loading screen that's waiting on a
+// click nobody can see to make.
+Wavedash.init({ debug: import.meta.env.DEV });
+
 async function bootstrap(): Promise<void> {
-  // SECTION 5.1 — synchronous, not a promise: the game stays hidden behind the
-  // Wavedash loading screen until this fires, so call it once we're ready to play.
-  Wavedash.init({ debug: import.meta.env.DEV });
   // Load previously-persisted stats into the local cache before any getStat() call.
   await requestStatsOnBoot();
 
@@ -166,6 +171,11 @@ async function bootstrap(): Promise<void> {
   fitRootToViewport();
   window.addEventListener('resize', fitRootToViewport);
 
+  // Geist Pixel Square is used throughout the HUD/dialogs/side screen — wait for it here
+  // alongside the texture loads below so the loading screen covers every asset the game
+  // depends on, not just Pixi textures.
+  await document.fonts.ready;
+
   const floorTexture = await Assets.load('/assets/floor.png');
   floorTexture.source.scaleMode = 'nearest'; // keep 64x32 tile crisp when repeated, not blurred
   const wiresTexture = await Assets.load('/assets/wires.png');
@@ -174,6 +184,7 @@ async function bootstrap(): Promise<void> {
   await loadServerTextures();
   await loadAntivirusTextures();
   await loadPlayerTextures();
+  await loadDialogTextures();
 
   const roomFloor = new Container();
   roomFloor.label = 'roomFloor';
@@ -206,7 +217,6 @@ async function bootstrap(): Promise<void> {
 
   const dialogBox = buildDialogBox(ROOM_WIDTH, ROOM_HEIGHT);
   const gameOverScreen = buildGameOverScreen(ROOM_WIDTH, ROOM_HEIGHT);
-  const achievementToast = buildAchievementToast(ROOM_WIDTH);
 
   app.stage.addChild(
     roomFloor,
@@ -216,7 +226,6 @@ async function bootstrap(): Promise<void> {
     playerLayer,
     dialogBox.container,
     gameOverScreen.container,
-    achievementToast.container,
   );
 
   let state: GameState;
@@ -225,8 +234,6 @@ async function bootstrap(): Promise<void> {
   let prevPlayerState: GameState['player']['currentState'];
   let prevFacing: GameState['player']['facing'];
   let prevInteractableId: number | null = null;
-  let toastQueue: string[] = [];
-  let toastActive = false;
 
   function startRun(): void {
     state = createGameState();
@@ -235,8 +242,6 @@ async function bootstrap(): Promise<void> {
     prevPlayerState = state.player.currentState;
     prevFacing = state.player.facing;
     prevInteractableId = null;
-    toastQueue = [];
-    toastActive = false;
 
     serverLayer.removeChildren();
     for (const server of state.servers) {
@@ -360,17 +365,6 @@ async function bootstrap(): Promise<void> {
       prevFacing = state.player.facing;
     }
 
-    for (const id of consumeAchievementNotifications()) {
-      toastQueue.push(ACHIEVEMENT_LABELS[id] ?? id);
-      playAchievementSfx();
-    }
-    if (!toastActive && toastQueue.length > 0) {
-      achievementToast.show(toastQueue.shift()!);
-      toastActive = true;
-    } else if (toastActive) {
-      toastActive = achievementToast.update(deltaMs);
-    }
-
     if (state.gameOver && !gameOverHandled) {
       gameOverHandled = true;
       gameOverScreen.setStats(state.totalPatches, state.elapsedMs);
@@ -381,6 +375,27 @@ async function bootstrap(): Promise<void> {
   });
 }
 
-bootstrap().catch((err) => {
-  console.error('[bootstrap] failed to start game', err);
+// Home screen shows instantly (plain DOM, no asset loading involved) — bootstrap() itself,
+// with every texture/font/Wavedash load it awaits, only runs once the player opts in by
+// pressing Start, and the loading screen covers exactly that window.
+const homeScreenEl = document.querySelector<HTMLDivElement>('#homeScreen');
+const loadingScreenEl = document.querySelector<HTMLDivElement>('#loadingScreen');
+const loadingTextEl = document.querySelector<HTMLDivElement>('#loadingText');
+const startButtonEl = document.querySelector<HTMLButtonElement>('#startButton');
+if (!homeScreenEl || !loadingScreenEl || !loadingTextEl || !startButtonEl) {
+  throw new Error('Home/loading screen elements not found');
+}
+
+startButtonEl.addEventListener('click', () => {
+  homeScreenEl.style.display = 'none';
+  loadingScreenEl.style.display = 'flex';
+
+  bootstrap()
+    .then(() => {
+      loadingScreenEl.style.display = 'none';
+    })
+    .catch((err) => {
+      console.error('[bootstrap] failed to start game', err);
+      loadingTextEl.textContent = 'FAILED TO LOAD — please refresh.';
+    });
 });

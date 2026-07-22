@@ -1,16 +1,21 @@
-import { Container, Graphics } from 'pixi.js';
+import { Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { PLACEHOLDER_COLORS } from '../config';
 
-// SECTION 4.6 — Guide Avatar & Dialog Panel Placeholders
-export function buildGuideAvatarVisual(): Container {
-  return new Graphics().circle(0, 0, 28).fill(PLACEHOLDER_COLORS.guideAvatar);
+let dialogFrameTexture: Texture = Texture.EMPTY;
+
+// Must resolve before the first buildDialogFrameVisual() call — bootstrap() awaits this
+// alongside loadServerTextures/loadAntivirusTextures/loadPlayerTextures.
+export async function loadDialogTextures(): Promise<void> {
+  const texture = await Assets.load('/assets/dialog.png');
+  texture.source.scaleMode = 'nearest';
+  dialogFrameTexture = texture;
 }
 
-// Not an explicit PRD builder — the 'alert' portrait (Section 1.4) needs its own
-// placeholder distinct from 'guide', reusing the INFECTED red for the "something's
-// wrong" read.
-export function buildAlertAvatarVisual(): Container {
-  return new Graphics().circle(0, 0, 28).fill(PLACEHOLDER_COLORS.server.INFECTED);
+// The dialog.png art asset (720x130) replaces the placeholder rounded-rect panel below —
+// the box's own border/shadow is baked into the art, text is laid out over it via the
+// offsets in dialogBox.ts.
+export function buildDialogFrameVisual(): Container {
+  return new Sprite(dialogFrameTexture);
 }
 
 export function buildDialogPanelVisual(width: number, height: number): Container {
