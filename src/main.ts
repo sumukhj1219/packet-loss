@@ -3,6 +3,7 @@ import { attemptPlaceAntivirusTower, updateAntivirusTower } from './antivirus';
 import { startBackgroundMusic } from './audio';
 import {
   PLACEHOLDER_COLORS,
+  PLAYER_SPRINT_SPEED,
   ROOM_BACKGROUND_COLOR,
   ROOM_HEIGHT,
   ROOM_WIDTH,
@@ -11,20 +12,24 @@ import {
   WALL_THICKNESS,
 } from './config';
 import { clampToRoom, resolveServerCollisions } from './collision';
+import { isInputBuffered, updateConnectionLag } from './connectionLag';
 import { bootSequence, checkDialogTriggers, dismissActiveDialog, pumpDialogQueue } from './dialog';
 import { consumeAntivirusPress, consumeInteractPress, getMovementAxis, initInput, isSprintHeld } from './input';
 import { attemptPatch, findInteractableServer } from './interaction';
+import { updateLightFlicker } from './lightFlicker';
 import { updateImmunityTimers, updatePatching } from './patch';
 import { updatePlayerMovement } from './player';
 import { checkTimeBasedAchievements, recordGameOverStats, recordGameStart, requestStatsOnBoot } from './stats';
 import { createGameState } from './state';
 import type { GameState } from './types';
 import { buildAntivirusVisual, loadAntivirusTextures, updateAntivirusVisual } from './visuals/antivirusVisual';
+import { buildConnectionLagBanner, updateConnectionLagBanner } from './visuals/connectionLagBanner';
 import { buildDialogBox } from './visuals/dialogBox';
 import { loadDialogTextures } from './visuals/dialogVisual';
 import { buildGameOverScreen } from './visuals/gameOverScreen';
 import { buildDataPoolBar, updateDataPoolBar } from './visuals/dataPoolBar';
 import { buildInfectedGrid, updateInfectedGrid } from './visuals/infectedGrid';
+import { buildLightFlickerOverlay, updateLightFlickerVisual } from './visuals/lightFlickerVisual';
 import { loadPlayerTextures, updatePlayerVisual } from './visuals/playerVisual';
 import { loadServerTextures, updateServerVisual } from './visuals/serverVisual';
 import { triggerInitialOutbreak, VIRUS_TICK_MS, virusTick } from './virus';
@@ -135,6 +140,9 @@ async function bootstrap(): Promise<void> {
   if (!infectedGridEl) throw new Error('#infectedGrid element not found');
   const infectedGridCells = buildInfectedGrid(infectedGridEl);
 
+  const connectionLagIndicatorEl = document.querySelector<HTMLDivElement>('#connectionLagIndicator');
+  if (!connectionLagIndicatorEl) throw new Error('#connectionLagIndicator element not found');
+
   function updateDataScreen(state: GameState): void {
     const seconds = Math.floor(state.elapsedMs / 1000);
     const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -153,6 +161,11 @@ async function bootstrap(): Promise<void> {
     const staminaRatio = state.player.stamina / STAMINA_MAX;
     dataScreenValues.staminaFill.style.width = `${(staminaRatio * 100).toFixed(0)}%`;
     dataScreenValues.staminaFill.classList.toggle('stamina-low', staminaRatio <= 0.2);
+
+    // Non-null assertion needed since this element ref is read from inside a closure defined
+    // after the throw-guard above — TS doesn't carry the narrowing across that boundary, even
+    // though the guard already guarantees it for the page's lifetime.
+    connectionLagIndicatorEl!.style.display = state.connectionLag.bufferRemainingMs > 0 ? 'flex' : 'none';
   }
 
   // Internal render resolution stays fixed at ROOM_WIDTH x ROOM_HEIGHT (collision/layout math
@@ -217,6 +230,8 @@ async function bootstrap(): Promise<void> {
 
   const dialogBox = buildDialogBox(ROOM_WIDTH, ROOM_HEIGHT);
   const gameOverScreen = buildGameOverScreen(ROOM_WIDTH, ROOM_HEIGHT);
+  const lightFlickerOverlay = buildLightFlickerOverlay(ROOM_WIDTH, ROOM_HEIGHT);
+  const connectionLagBanner = buildConnectionLagBanner(ROOM_WIDTH);
 
   app.stage.addChild(
     roomFloor,
@@ -226,6 +241,8 @@ async function bootstrap(): Promise<void> {
     playerLayer,
     dialogBox.container,
     gameOverScreen.container,
+    lightFlickerOverlay,
+    connectionLagBanner,
   );
 
   let state: GameState;
@@ -264,6 +281,8 @@ async function bootstrap(): Promise<void> {
 
     gameOverScreen.setVisible(false);
     dialogBox.setEvent(null);
+    lightFlickerOverlay.alpha = 0;
+    connectionLagBanner.alpha = 0;
 
     bootSequence(state);
     triggerInitialOutbreak(state);
@@ -303,6 +322,12 @@ async function bootstrap(): Promise<void> {
     pumpDialogQueue(state);
     dialogBox.setEvent(state.dialog.activeEvent);
 
+    // Ticks and renders regardless of dialog-block state so the lights keep flickering
+    // through the "lights hacked" dialog's own blocking window instead of freezing with it.
+    updateLightFlicker(state, deltaMs);
+    updateLightFlickerVisual(lightFlickerOverlay, state.lightFlickerRemainingMs);
+    updateConnectionLagBanner(connectionLagBanner, state.connectionLag.telegraphRemainingMs);
+
     // Every dialog now blocks (Section 3.1/3.2 deviation — see dialog.ts): no elapsed-time
     // advance, no virus tick accumulation, no movement/patching while one is on screen.
     // Everything below this point is simulation, not rendering, so it's the one thing
@@ -317,20 +342,51 @@ async function bootstrap(): Promise<void> {
           virusTick(state);
         }
 
-        updatePlayerMovement(state.player, getMovementAxis(), deltaMs / 1000, isSprintHeld());
+        // Runs every frame regardless of buffering — the whole point of the mechanic is that
+        // the world (virus, timers) keeps moving dangerously while the player's own input isn't
+        // landing. Returns true only on the exact frame the buffer window empties.
+        const lagJustFlushed = updateConnectionLag(state, deltaMs);
+
+        const movementAxis = isInputBuffered(state) ? { x: 0, y: 0 } : getMovementAxis();
+        updatePlayerMovement(state.player, movementAxis, deltaMs / 1000, isSprintHeld());
         resolveServerCollisions(state.player, state.servers);
         clampToRoom(state.player);
 
+        if (lagJustFlushed) {
+          // Snap the player forward by whatever's currently held, as if every bit of buffered
+          // movement suddenly lands at once — re-resolve collisions/walls against the new spot
+          // since the calls above already ran this frame against the pre-snap position.
+          const burstAxis = getMovementAxis();
+          const burstSpeed = isSprintHeld() && state.player.stamina > 0 ? PLAYER_SPRINT_SPEED : state.player.speed;
+          const burstSeconds = state.connectionLag.bufferDurationMs / 1000;
+          state.player.x += burstAxis.x * burstSpeed * burstSeconds;
+          state.player.y += burstAxis.y * burstSpeed * burstSeconds;
+          resolveServerCollisions(state.player, state.servers);
+          clampToRoom(state.player);
+        }
+
         const interactable = findInteractableServer(state.player, state.servers);
-        if (consumeInteractPress() && interactable) {
+        if (isInputBuffered(state)) {
+          if (consumeInteractPress()) state.connectionLag.bufferedInteractPress = true;
+        } else if (consumeInteractPress() && interactable) {
           attemptPatch(state, interactable.id);
+        }
+        if (lagJustFlushed && state.connectionLag.bufferedInteractPress) {
+          state.connectionLag.bufferedInteractPress = false;
+          if (interactable) attemptPatch(state, interactable.id);
         }
 
         updatePatching(state, deltaMs);
         updateImmunityTimers(state, deltaMs);
 
         updateAntivirusTower(state, deltaMs);
-        if (consumeAntivirusPress()) {
+        if (isInputBuffered(state)) {
+          if (consumeAntivirusPress()) state.connectionLag.bufferedAntivirusPress = true;
+        } else if (consumeAntivirusPress()) {
+          attemptPlaceAntivirusTower(state, state.player);
+        }
+        if (lagJustFlushed && state.connectionLag.bufferedAntivirusPress) {
+          state.connectionLag.bufferedAntivirusPress = false;
           attemptPlaceAntivirusTower(state, state.player);
         }
 

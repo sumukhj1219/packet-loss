@@ -1,12 +1,18 @@
+import { LIGHT_FLICKER_DURATION_MS } from './lightFlicker';
 import type { GameState } from './types';
 
 // Not in the PRD — every dialog now blocks and requires Enter to dismiss, not just the
 // boot tutorial. `portrait` stays purely cosmetic (which avatar shows); pausesSimulation
 // is always true so pumpDialogQueue/dismissActiveDialog freeze the game uniformly.
-function fireDialogEvent(state: GameState, id: string, text: string, portrait: 'guide' | 'alert' = 'alert'): void {
-  if (state.dialog.triggeredEventIds.has(id)) return;
+// Returns whether this call newly queued the event (false on every later re-check once a
+// one-shot id has already fired) — callers that need to trigger a side effect exactly once
+// alongside the dialog (e.g. starting the lights-hacked flicker) key off this, not the
+// trigger condition itself, since that condition can stay true for many frames in a row.
+function fireDialogEvent(state: GameState, id: string, text: string, portrait: 'guide' | 'alert' = 'alert'): boolean {
+  if (state.dialog.triggeredEventIds.has(id)) return false;
   state.dialog.triggeredEventIds.add(id);
   state.dialog.queue.push({ id, text, portrait, pausesSimulation: true });
+  return true;
 }
 
 // SECTION 3.2 — boot tutorial. Deviation from the literal spec: virusPaused is no longer
@@ -49,6 +55,16 @@ export function checkDialogTriggers(state: GameState): void {
       'mid_game_5_patches',
       "Good job! 5 rigs stabilized. Heads up — the virus updates its firewall every 10 patches, adding 2 more infections.",
     );
+  }
+
+  if (state.totalPatches === 40) {
+    const justFired = fireDialogEvent(
+      state,
+      'lights_hacked',
+      "ALERT: The virus has hijacked the building's lighting control system. External engineers are working to restore it.",
+      'alert',
+    );
+    if (justFired) state.lightFlickerRemainingMs = LIGHT_FLICKER_DURATION_MS;
   }
 
   const ratio = state.dataPool / state.maxDataPool;

@@ -1,3 +1,4 @@
+import { randomConnectionLagInterval } from './connectionLag';
 import { ROOM_HEIGHT, ROOM_WIDTH, WALL_THICKNESS } from './config';
 import { createPlayer, createServers } from './entities';
 import { createRoomLayout } from './room';
@@ -32,5 +33,14 @@ export function createGameState(): GameState {
     antivirusTowersPlacedThisRun: 0,
     dataPoolStayedAbove90ThisRun: true,
     consecutiveRapidResponses: 0,
+    lightFlickerRemainingMs: 0,
+    connectionLag: {
+      nextEventAtMs: randomConnectionLagInterval(),
+      telegraphRemainingMs: 0,
+      bufferRemainingMs: 0,
+      bufferDurationMs: 0,
+      bufferedInteractPress: false,
+      bufferedAntivirusPress: false,
+    },
   };
 }

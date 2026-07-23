@@ -70,6 +70,17 @@ export interface AntivirusTower {
   radius: number;
 }
 
+// Not in the PRD — recurring "bad connection" event (see connectionLag.ts): input gets
+// buffered for a short window then flushed as a burst, telegraphed by a non-blocking banner.
+export interface ConnectionLagState {
+  nextEventAtMs: number; // state.elapsedMs value the next telegraph starts at
+  telegraphRemainingMs: number; // counts down while the "CONNECTION UNSTABLE" banner is showing, 0 = inactive
+  bufferRemainingMs: number; // counts down while input is buffered/frozen, 0 = inactive
+  bufferDurationMs: number; // total length of the current/last buffer window, used to size the flush burst
+  bufferedInteractPress: boolean; // captured during the buffer window, applied on flush
+  bufferedAntivirusPress: boolean; // captured during the buffer window, applied on flush
+}
+
 // SECTION 1.5 — Global GameState
 export interface GameState {
   dataPool: number; // starts 10000, floors at 0
@@ -87,4 +98,6 @@ export interface GameState {
   antivirusTowersPlacedThisRun: number; // NO_ANTIVIRUS_NEEDED achievement (Section 5.3)
   dataPoolStayedAbove90ThisRun: boolean; // flips false the first time dataPool dips below 90%, UNTOUCHABLE achievement (Section 5.3)
   consecutiveRapidResponses: number; // resets to 0 on any non-rapid infected patch, SPEED_DEMON achievement (Section 5.3)
+  lightFlickerRemainingMs: number; // counts down from LIGHT_FLICKER_DURATION_MS during the 40-patch "lights hacked" event, 0 = inactive
+  connectionLag: ConnectionLagState;
 }
