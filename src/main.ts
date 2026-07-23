@@ -171,7 +171,7 @@ async function bootstrap(): Promise<void> {
   fitRootToViewport();
   window.addEventListener('resize', fitRootToViewport);
 
-  // Geist Pixel Square is used throughout the HUD/dialogs/side screen — wait for it here
+  // Modak is used throughout the HUD/dialogs/side screen — wait for it here
   // alongside the texture loads below so the loading screen covers every asset the game
   // depends on, not just Pixi textures.
   await document.fonts.ready;

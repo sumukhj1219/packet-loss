@@ -1,7 +1,7 @@
 @font-face {
-  font-family: 'Geist Pixel Square';
-  src: url('/fonts/GeistPixel-Square.woff2') format('woff2');
-  font-weight: 500;
+  font-family: 'Modak';
+  src: url('/fonts/Modak-Regular.woff2') format('woff2');
+  font-weight: 400;
   font-display: swap;
 }
 
@@ -61,21 +61,31 @@ body {
   justify-content: center;
   gap: 40px;
   background: #05060a;
-  font-family: 'Geist Pixel Square', monospace;
+  font-family: 'Modak', monospace;
+}
+
+/* home.png (the mascot + wordmark art, chroma-keyed to transparent) fills the frame at
+   roughly a 1:1 scale (1920x1080 vs this 1360x760 box — cover crops ~5px total), so the
+   art's bottom edge lands around y=564; the button sits centered in the ~196px gap below
+   it rather than mid-screen, where it would overlap the "loss" lettering. */
+#homeScreen {
+  background-image: url('/assets/home.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  justify-content: flex-end;
+  padding-bottom: 70px;
 }
 
 #loadingScreen {
   display: none; /* toggled by main.ts once the player presses Start */
+  justify-content: center;
   gap: 20px;
 }
 
-#homeTitle {
-  margin: 0;
-  font-size: 64px;
-  letter-spacing: 8px;
-  color: #4fa8ff;
-}
-
+/* Modak only ships in one (heavy) weight — there's no lighter cut to switch to, so a thin
+   stroke in the surface's own background color is drawn over the glyph edges to eat into
+   the fill and read as a lighter weight, instead of the full block stroke. */
 #startButton {
   font-family: inherit;
   font-size: 20px;
@@ -86,16 +96,19 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  -webkit-text-stroke: 0.8px #4fa8ff;
 }
 
 #startButton:hover {
   background: #6fb8ff;
+  -webkit-text-stroke-color: #6fb8ff;
 }
 
 #loadingText {
   font-size: 20px;
   letter-spacing: 4px;
   color: #8791a1;
+  -webkit-text-stroke: 0.8px #05060a;
 }
 
 #dataScreen {
@@ -124,9 +137,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-family: 'Geist Pixel Square', monospace;
+  font-family: 'Modak', monospace;
   font-size: 15px;
   color: #c7d0dc;
+  /* screen.png's cutout background is a flat #595652 — see the Modak thinning note above. */
+  -webkit-text-stroke: 0.6px #595652;
 }
 
 .screen-header {

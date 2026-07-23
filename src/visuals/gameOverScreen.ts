@@ -34,6 +34,12 @@ const COL_NAME_X = 80;
 const RANK_COLORS: Record<number, number> = { 1: 0xffd24f, 2: 0xc8ccd4, 3: 0xcd7f32 };
 const RANK_DEFAULT_COLOR = 0x8a8f98;
 
+// Modak only ships in one (heavy) weight — a thin stroke in the surface's own background
+// color eats into the glyph edges so it reads lighter, since there's no lighter cut to use.
+const BUTTON_BG_COLOR = 0x4fa8ff; // buildButton()'s hitArea fill.
+const OVERLAY_BG_COLOR = 0x000000; // approximates the 75%-alpha black overlay behind mainView.
+const PANEL_BG_COLOR = 0x1c1e26; // PLACEHOLDER_COLORS.dialogPanel, behind the leaderboard view.
+
 function buildButton(label: string, width: number): { root: Container; hitArea: Graphics } {
   const root = new Container();
 
@@ -44,7 +50,13 @@ function buildButton(label: string, width: number): { root: Container; hitArea: 
 
   const text = new Text({
     text: label,
-    style: { fill: 0x0b0d12, fontSize: 18, fontFamily: 'sans-serif', fontWeight: 'bold' },
+    style: {
+      fill: 0x0b0d12,
+      fontSize: 18,
+      fontFamily: 'Modak',
+      fontWeight: 'bold',
+      stroke: { color: BUTTON_BG_COLOR, width: 0.9 },
+    },
   });
   text.anchor.set(0.5);
   root.addChild(text);
@@ -65,7 +77,13 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
 
   const title = new Text({
     text: 'GAME OVER',
-    style: { fill: 0xff2e4d, fontSize: 48, fontFamily: 'sans-serif', fontWeight: 'bold' },
+    style: {
+      fill: 0xff2e4d,
+      fontSize: 48,
+      fontFamily: 'Modak',
+      fontWeight: 'bold',
+      stroke: { color: OVERLAY_BG_COLOR, width: 2 },
+    },
   });
   title.anchor.set(0.5);
   title.x = roomWidth / 2;
@@ -74,7 +92,13 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
 
   const stats = new Text({
     text: '',
-    style: { fill: 0xffffff, fontSize: 20, fontFamily: 'monospace', align: 'center' },
+    style: {
+      fill: 0xffffff,
+      fontSize: 20,
+      fontFamily: 'Modak',
+      align: 'center',
+      stroke: { color: OVERLAY_BG_COLOR, width: 1 },
+    },
   });
   stats.anchor.set(0.5);
   stats.x = roomWidth / 2;
@@ -116,7 +140,13 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
 
   const lbTitle = new Text({
     text: 'LEADERBOARD',
-    style: { fill: 0x4fa8ff, fontSize: 36, fontFamily: 'sans-serif', fontWeight: 'bold' },
+    style: {
+      fill: 0x4fa8ff,
+      fontSize: 36,
+      fontFamily: 'Modak',
+      fontWeight: 'bold',
+      stroke: { color: PANEL_BG_COLOR, width: 1.6 },
+    },
   });
   lbTitle.anchor.set(0, 0);
   lbTitle.x = contentX;
@@ -128,7 +158,13 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
   headerContainer.y = panelY + LB_PANEL_PADDING + LB_TITLE_GAP;
   leaderboardView.addChild(headerContainer);
 
-  const headerStyle = { fill: 0x8a8f98, fontSize: 14, fontFamily: 'monospace', fontWeight: 'bold' as const };
+  const headerStyle = {
+    fill: 0x8a8f98,
+    fontSize: 14,
+    fontFamily: 'Modak',
+    fontWeight: 'bold' as const,
+    stroke: { color: PANEL_BG_COLOR, width: 0.7 },
+  };
   const rankHeader = new Text({ text: 'RANK', style: headerStyle });
   rankHeader.anchor.set(0, 0.5);
   rankHeader.x = 0;
@@ -154,7 +190,7 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
 
   const statusText = new Text({
     text: '',
-    style: { fill: 0x8a8f98, fontSize: 16, fontFamily: 'sans-serif' },
+    style: { fill: 0x8a8f98, fontSize: 16, fontFamily: 'Modak', stroke: { color: PANEL_BG_COLOR, width: 0.8 } },
   });
   statusText.anchor.set(0, 0.5);
   statusText.x = contentX;
@@ -181,7 +217,13 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
     const rankColor = RANK_COLORS[row.rank] ?? RANK_DEFAULT_COLOR;
     const rankText = new Text({
       text: `#${row.rank}`,
-      style: { fill: rankColor, fontSize: 16, fontFamily: 'monospace', fontWeight: 'bold' },
+      style: {
+        fill: rankColor,
+        fontSize: 16,
+        fontFamily: 'Modak',
+        fontWeight: 'bold',
+        stroke: { color: PANEL_BG_COLOR, width: 0.8 },
+      },
     });
     rankText.anchor.set(0, 0.5);
     rankText.x = 0;
@@ -189,7 +231,7 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
 
     const nameText = new Text({
       text: row.username.length > 24 ? `${row.username.slice(0, 23)}…` : row.username,
-      style: { fill: 0xffffff, fontSize: 16, fontFamily: 'monospace' },
+      style: { fill: 0xffffff, fontSize: 16, fontFamily: 'Modak', stroke: { color: PANEL_BG_COLOR, width: 0.8 } },
     });
     nameText.anchor.set(0, 0.5);
     nameText.x = COL_NAME_X;
@@ -197,7 +239,13 @@ export function buildGameOverScreen(roomWidth: number, roomHeight: number): Game
 
     const scoreText = new Text({
       text: String(row.score),
-      style: { fill: 0xffffff, fontSize: 16, fontFamily: 'monospace', fontWeight: 'bold' },
+      style: {
+        fill: 0xffffff,
+        fontSize: 16,
+        fontFamily: 'Modak',
+        fontWeight: 'bold',
+        stroke: { color: PANEL_BG_COLOR, width: 0.8 },
+      },
     });
     scoreText.anchor.set(1, 0.5);
     scoreText.x = contentWidth;
