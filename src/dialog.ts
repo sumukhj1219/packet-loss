@@ -20,11 +20,20 @@ function fireDialogEvent(state: GameState, id: string, text: string, portrait: '
 // drain/spread immediately). Instead it's tied to this dialog's blocking window only, via
 // pumpDialogQueue/dismissActiveDialog below, so the player isn't taking undodgeable damage
 // while their input is literally blocked by the tutorial text.
+// Split into two queued events — premise first, then controls — so new players get the
+// "why" before the "how"; the queue only ever holds one blocking event at a time so these
+// always show back-to-back in order.
 export function bootSequence(state: GameState): void {
   fireDialogEvent(
     state,
+    'boot_intro',
+    "A virus just breached the server room. It's spreading rack to rack, bleeding the Data Pool dry. You're the only engineer on site — keep it contained, or the whole pool drains to zero.",
+    'alert',
+  );
+  fireDialogEvent(
+    state,
     'boot_tutorial',
-    'Welcome, Engineer. Use WASD or Arrow Keys to move. Approach a rack and click (or press SPACE) to patch it.',
+    'Use WASD or Arrow Keys to move. Approach a rack and click (or press SPACE) to patch it.',
     'guide',
   );
 }

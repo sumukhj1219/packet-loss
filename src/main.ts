@@ -184,11 +184,6 @@ async function bootstrap(): Promise<void> {
   fitRootToViewport();
   window.addEventListener('resize', fitRootToViewport);
 
-  // Modak is used throughout the HUD/dialogs/side screen — wait for it here
-  // alongside the texture loads below so the loading screen covers every asset the game
-  // depends on, not just Pixi textures.
-  await document.fonts.ready;
-
   const floorTexture = await Assets.load('/assets/floor.png');
   floorTexture.source.scaleMode = 'nearest'; // keep 64x32 tile crisp when repeated, not blurred
   const wiresTexture = await Assets.load('/assets/wires.png');
@@ -291,17 +286,23 @@ async function bootstrap(): Promise<void> {
     console.log(`[bootstrap] rendered ${state.servers.length} servers and 1 player, new run started`);
   }
 
-  gameOverScreen.onRetry(() => startRun());
-  gameOverScreen.onViewLeaderboard(() => {
+  let currentLeaderboardPage = 0;
+  function loadLeaderboardPage(page: number): void {
     gameOverScreen.showLeaderboardLoading();
-    fetchLeaderboardEntries().then((result) => {
+    fetchLeaderboardEntries(page).then((result) => {
       if (result.success) {
-        gameOverScreen.showLeaderboardRows(result.rows);
+        currentLeaderboardPage = result.page;
+        gameOverScreen.showLeaderboardRows(result.rows, result.page, result.hasNextPage);
       } else {
         gameOverScreen.showLeaderboardError(result.message);
       }
     });
-  });
+  }
+
+  gameOverScreen.onRetry(() => startRun());
+  gameOverScreen.onViewLeaderboard(() => loadLeaderboardPage(0));
+  gameOverScreen.onNextPage(() => loadLeaderboardPage(currentLeaderboardPage + 1));
+  gameOverScreen.onPrevPage(() => loadLeaderboardPage(currentLeaderboardPage - 1));
 
   initInput();
 

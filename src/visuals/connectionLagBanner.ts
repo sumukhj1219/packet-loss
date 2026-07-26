@@ -29,7 +29,7 @@ export function buildConnectionLagBanner(roomWidth: number): Container {
     style: {
       fill: BANNER_ACCENT_COLOR,
       fontSize: 18,
-      fontFamily: 'Modak',
+      fontFamily: 'sans-serif',
       fontWeight: 'bold',
       stroke: { color: BANNER_BG_COLOR, width: 0.9 },
     },

@@ -65,17 +65,18 @@ export function grantAchievement(id: string): void {
 }
 
 const LEADERBOARD_NAME = 'patches-survived';
-const LEADERBOARD_FETCH_LIMIT = 15; // matches gameOverScreen.ts's LB_MAX_ROWS
+const LEADERBOARD_PAGE_SIZE = 10; // rows per page, matches gameOverScreen.ts's LB_ROWS_PER_PAGE
 
 export interface LeaderboardRow {
-  rank: number;
   username: string;
   score: number;
 }
 
-export type FetchLeaderboardResult = { success: true; rows: LeaderboardRow[] } | { success: false; message: string };
+export type FetchLeaderboardResult =
+  | { success: true; rows: LeaderboardRow[]; page: number; hasNextPage: boolean }
+  | { success: false; message: string };
 
-export async function fetchLeaderboardEntries(): Promise<FetchLeaderboardResult> {
+export async function fetchLeaderboardEntries(page: number): Promise<FetchLeaderboardResult> {
   try {
     const leaderboard = await Wavedash.getOrCreateLeaderboard(
       LEADERBOARD_NAME,
@@ -84,11 +85,16 @@ export async function fetchLeaderboardEntries(): Promise<FetchLeaderboardResult>
     );
     if (!leaderboard.success) return { success: false, message: leaderboard.message };
 
-    const entries = await Wavedash.listLeaderboardEntries(leaderboard.data.id, 0, LEADERBOARD_FETCH_LIMIT);
+    const offset = page * LEADERBOARD_PAGE_SIZE;
+    const entries = await Wavedash.listLeaderboardEntries(leaderboard.data.id, offset, LEADERBOARD_PAGE_SIZE);
     if (!entries.success) return { success: false, message: entries.message };
 
-    const rows = entries.data.map((entry) => ({ rank: entry.globalRank, username: entry.username, score: entry.score }));
-    return { success: true, rows };
+    // Only populated once listLeaderboardEntries above has resolved at least once — it's
+    // the call that warms this cache, so it must run first (see @wvdsh/sdk-js's
+    // updateCachedTotalEntries).
+    const totalEntries = Wavedash.getLeaderboardEntryCount(leaderboard.data.id);
+    const rows = entries.data.map((entry) => ({ username: entry.username, score: entry.score }));
+    return { success: true, rows, page, hasNextPage: offset + rows.length < totalEntries };
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : String(err) };
   }
